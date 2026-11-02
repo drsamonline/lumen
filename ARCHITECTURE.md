@@ -111,6 +111,35 @@ image, the grid cannot disagree with the viewer.
 Export re-runs the same maths on a `Canvas` and writes a new PNG — the original
 file is opened read-only and never written.
 
+## Selection and bulk edits
+
+Selection lives inside `PhotoGrid`, not in a global provider. The library and
+album grids are both alive inside an `IndexedStack`, so a shared selection would
+leak between them — a photo selected in Albums would still be selected when the
+user switched back to Library. Keeping the `Set<int>` in the widget's own state
+makes that impossible.
+
+Bulk mutations go through `setRatingMany` / `setFavoriteMany`, which build one
+`UPDATE ... WHERE id IN (...)` inside a single transaction. Marking 400 photos
+is one write, not 400.
+
+## Crop
+
+`CropMath` is pure geometry over `dart:ui` types with no widget dependency, so
+the fiddly part is unit-tested without a render surface: corner dragging, aspect
+locking, clamping, minimum size, and dragging a corner past its opposite anchor.
+
+Two rules earn their comments in the source:
+
+- A corner **never crosses its anchor**, so a rectangle cannot invert mid-drag.
+- With an aspect lock the ratio is satisfied *first*, then the result is pulled
+  back inside the frame. Doing it the other way round silently turns a 1:1 lock
+  into 16:9 at the edge of a wide photo.
+
+Crop rectangles are stored normalised (0..1 across the image), which is why one
+recipe crops correctly in a 160 px grid tile, a 2400 px viewer and a
+full-resolution export.
+
 ## Image formats
 
 `ImageFormatPlugin` is the whole contract: which extensions it claims, which

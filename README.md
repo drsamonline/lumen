@@ -29,10 +29,17 @@ One Flutter codebase, four real native builds: **Windows, Linux, macOS, Android*
 
 **Viewer**
 - Swipe, pinch-zoom, per-photo details.
-- Non-destructive editing: rotate, flip, crop, brightness, contrast,
-  saturation, warmth. Stored as a small JSON recipe in SQLite; the original
-  file is never modified.
+- Non-destructive editing: rotate, flip, brightness, contrast, saturation,
+  warmth, plus a real crop tool — corner handles, rule-of-thirds guides, and
+  Free / 1:1 / 4:3 / 3:4 / 3:2 / 16:9 presets. Stored as a small JSON recipe in
+  SQLite; the original file is never modified.
 - Export an edited copy as a real PNG beside the original.
+
+**Multi-select**
+- Long-press any photo to start selecting; tap to add or remove.
+- One action bar for the whole selection: 0-5 stars, favourite / unfavourite,
+  add to album, or export as a ZIP.
+- Bulk edits run in a single transaction, so rating 400 photos is one write.
 
 **People**
 - Manual face tagging: drag a box on a photo, name the person. Face boxes are

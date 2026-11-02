@@ -128,6 +128,24 @@ class LibraryController extends ChangeNotifier {
     _replace(photo.id, photo.copyWith(isFavorite: favorite));
   }
 
+  Future<void> setRatingForAll(List<int> ids, int rating) async {
+    await _dao.setRatingMany(ids, rating);
+    for (final id in ids) {
+      final index = _photos.indexWhere((p) => p.id == id);
+      if (index >= 0) _photos[index] = _photos[index].copyWith(rating: rating);
+    }
+    if (_alive) notifyListeners();
+  }
+
+  Future<void> setFavoriteForAll(List<int> ids, bool favorite) async {
+    await _dao.setFavoriteMany(ids, favorite);
+    for (final id in ids) {
+      final index = _photos.indexWhere((p) => p.id == id);
+      if (index >= 0) _photos[index] = _photos[index].copyWith(isFavorite: favorite);
+    }
+    if (_alive) notifyListeners();
+  }
+
   Future<void> setRating(Photo photo, int rating) async {
     await _dao.setRating(photo.id, rating);
     _replace(photo.id, photo.copyWith(rating: rating));

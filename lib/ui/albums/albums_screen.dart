@@ -3,11 +3,10 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path/path.dart' as p;
 
 import '../../core/app_paths.dart';
 import '../../core/db/photo_dao.dart';
-import '../../core/export/zip_writer.dart';
+import '../../core/export/album_zip.dart';
 import '../../core/models/album.dart';
 import '../../core/models/photo.dart';
 import '../../state/providers.dart';
@@ -235,28 +234,15 @@ class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
 
     setState(() => _exporting = true);
     try {
-      final safeName = widget.album.name
-          .replaceAll(RegExp(r'[^A-Za-z0-9 _-]'), '')
-          .trim()
-          .replaceAll(RegExp(r'\s+'), '-');
-      final target = File(p.join(directory, '${safeName.isEmpty ? 'album' : safeName}.zip'));
-
-      final sources = <ZipSource>[];
-      for (var i = 0; i < photos.length; i++) {
-        final photo = photos[i];
-        final file = File(photo.path);
-        if (!await file.exists()) continue;
-        sources.add(ZipSource.file(
-          '${i + 1}-${photo.fileName}',
-          file,
-        ));
-      }
-
-      final bytes = await ZipArchiveWriter.write(target, sources);
+      final result = await AlbumZip.export(
+        photos: photos,
+        directory: directory,
+        baseName: widget.album.name,
+      );
       messenger.showSnackBar(SnackBar(
         content: Text(
-          '${sources.length} photos · ${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB '
-          '→ ${p.basename(target.path)}',
+          '${result.count} photos · ${result.sizeLabel}'
+          '${result.skipped > 0 ? ' · ${result.skipped} unreadable' : ''}',
         ),
       ));
     } catch (e) {

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.0
+
+- **Multi-select.** Long-press to start, tap to toggle. Selection state is local
+  to the grid so the library and album views cannot leak into each other.
+- **Bulk action bar.** 0-5 stars, favourite / unfavourite, add to album, export
+  as ZIP, clear — each in a single transaction.
+- **Interactive crop.** Corner handles, rule-of-thirds guides, aspect presets
+  (Free, 1:1, 4:3, 3:4, 3:2, 16:9) and reset. Replaces the placeholder
+  square-crop button.
+- **`CropMath`** — pure geometry, unit-tested: no inversion, aspect preserved at
+  the frame edge, minimum size enforced.
+- **Shared `AlbumZip`** so album export and selection export behave identically.
+- `PhotoDao.totalBytes` for reporting selection size.
+
 ## 1.2.0
 
 - **Pluggable image formats.** `ImageFormatPlugin` + `ImageFormatRegistry`;

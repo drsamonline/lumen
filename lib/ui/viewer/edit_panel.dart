@@ -1,6 +1,10 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 
 import '../../core/models/edit_recipe.dart';
+import 'crop_dialog.dart';
 
 /// The adjustment sheet. Every change is previewed live on the photo behind
 /// it; nothing is written until the user taps Apply.
@@ -9,10 +13,18 @@ class EditPanel extends StatefulWidget {
     super.key,
     required this.initial,
     required this.onChanged,
+    required this.file,
+    required this.imageAspect,
+    this.decoded,
   });
 
   final EditRecipe initial;
   final ValueChanged<EditRecipe> onChanged;
+
+  /// Needed by the crop tool, which previews the real image.
+  final File file;
+  final double imageAspect;
+  final ui.Image? decoded;
 
   @override
   State<EditPanel> createState() => _EditPanelState();
@@ -24,6 +36,23 @@ class _EditPanelState extends State<EditPanel> {
   void _update(EditRecipe next) {
     setState(() => _recipe = next);
     widget.onChanged(next);
+  }
+
+  Future<void> _openCrop() async {
+    final rect = await showCropDialog(
+      context,
+      file: widget.file,
+      imageAspect: widget.imageAspect,
+      recipe: _recipe,
+      decoded: widget.decoded,
+    );
+    if (rect == null) return;
+    _update(_recipe.copyWith(
+      cropL: rect.left,
+      cropT: rect.top,
+      cropR: rect.right,
+      cropB: rect.bottom,
+    ));
   }
 
   @override
@@ -82,12 +111,10 @@ class _EditPanelState extends State<EditPanel> {
                     onTap: () => _update(_recipe.copyWith(flipV: !_recipe.flipV)),
                   ),
                   _ToolButton(
-                    icon: Icons.crop_square,
-                    label: 'Square crop',
+                    icon: Icons.crop,
+                    label: 'Crop',
                     active: _recipe.hasCrop,
-                    onTap: () => _update(_recipe.hasCrop
-                        ? _recipe.copyWith(cropL: 0, cropT: 0, cropR: 1, cropB: 1)
-                        : _recipe.copyWith(cropL: 0.1, cropT: 0.1, cropR: 0.9, cropB: 0.9)),
+                    onTap: _openCrop,
                   ),
                 ],
               ),

@@ -10,6 +10,7 @@ import '../../state/library_controller.dart';
 import '../../state/providers.dart';
 import '../viewer/viewer_screen.dart';
 import '../widgets/empty_state.dart';
+import 'batch_action_bar.dart';
 
 /// The timeline grid: month headers with photo tiles beneath, exactly the
 /// rhythm Picasa used. Paging is driven by scroll position, and thumbnails are
@@ -34,7 +35,18 @@ class PhotoGrid extends ConsumerStatefulWidget {
 
 class _PhotoGridState extends ConsumerState<PhotoGrid> {
   final ScrollController _scroll = ScrollController();
+  final Set<int> _selected = <int>{};
   double _tileExtent = 160;
+
+  bool get _selecting => _selected.isNotEmpty;
+
+  void _toggle(int photoId) {
+    setState(() {
+      if (!_selected.remove(photoId)) _selected.add(photoId);
+    });
+  }
+
+  void _clearSelection() => setState(_selected.clear);
 
   @override
   void initState() {
@@ -116,8 +128,10 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
                 final photo = group.photos[i];
                 return _PhotoTile(
                   photo: photo,
-                  onTap: () => _openViewer(photo),
-                  onLongPress: () => _showActions(photo),
+                  selected: _selected.contains(photo.id),
+                  selecting: _selecting,
+                  onTap: () => _selecting ? _toggle(photo.id) : _openViewer(photo),
+                  onLongPress: () => _toggle(photo.id),
                 );
               },
               childCount: group.photos.length,
@@ -136,12 +150,24 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
       ));
     }
 
-    return RefreshIndicator(
-      onRefresh: controller.refresh,
-      child: CustomScrollView(
-        controller: _scroll,
-        slivers: slivers,
-      ),
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: controller.refresh,
+            child: CustomScrollView(
+              controller: _scroll,
+              slivers: slivers,
+            ),
+          ),
+        ),
+        if (_selecting)
+          BatchActionBar(
+            selectedIds: _selected.toList(growable: false),
+            onClear: _clearSelection,
+            onMutated: controller.refresh,
+          ),
+      ],
     );
   }
 
@@ -155,55 +181,7 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
     );
   }
 
-  Future<void> _showActions(Photo photo) async {
-    final controller = widget.controller;
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            ListTile(
-              leading: Icon(photo.isFavorite ? Icons.star : Icons.star_border),
-              title: Text(photo.isFavorite ? 'Remove from favourites' : 'Add to favourites'),
-              onTap: () {
-                Navigator.pop(context);
-                controller.toggleFavorite(photo);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.star_rate),
-              title: const Text('Rate'),
-              subtitle: Row(
-                children: <Widget>[
-                  for (var i = 1; i <= 5; i++)
-                    IconButton(
-                      icon: Icon(
-                        i <= photo.rating ? Icons.star : Icons.star_border,
-                        size: 20,
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        controller.setRating(photo, i);
-                      },
-                    ),
-                ],
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('Details'),
-              onTap: () {
-                Navigator.pop(context);
-                _openViewer(photo);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 }
 
 class _MonthGroup {
@@ -247,11 +225,15 @@ class _PhotoTile extends ConsumerWidget {
     required this.photo,
     required this.onTap,
     required this.onLongPress,
+    this.selected = false,
+    this.selecting = false,
   });
 
   final Photo photo;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final bool selected;
+  final bool selecting;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -306,6 +288,34 @@ class _PhotoTile extends ConsumerWidget {
                     for (var i = 0; i < photo.rating; i++)
                       const Icon(Icons.circle, size: 4, color: Colors.white70),
                   ],
+                ),
+              ),
+            if (selecting)
+              Positioned(
+                top: 4,
+                left: 4,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: selected ? scheme.primary : Colors.black38,
+                    border: Border.all(color: Colors.white70, width: 1.5),
+                  ),
+                  child: selected
+                      ? Icon(Icons.check, size: 13, color: scheme.onPrimary)
+                      : null,
+                ),
+              ),
+            if (selected)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: scheme.primary, width: 2),
+                    ),
+                  ),
                 ),
               ),
           ],

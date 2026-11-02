@@ -215,6 +215,41 @@ class PhotoDao {
     );
   }
 
+  /// Bulk rating. One transaction for the whole selection, so marking 400
+  /// photos is one write rather than 400.
+  Future<void> setRatingMany(List<int> ids, int rating) async {
+    if (ids.isEmpty) return;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    await _db.update(
+      'photos',
+      <String, Object?>{'rating': rating.clamp(0, 5)},
+      where: 'id IN ($placeholders)',
+      whereArgs: <Object?>[...ids],
+    );
+  }
+
+  Future<void> setFavoriteMany(List<int> ids, bool favorite) async {
+    if (ids.isEmpty) return;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    await _db.update(
+      'photos',
+      <String, Object?>{'is_favorite': favorite ? 1 : 0},
+      where: 'id IN ($placeholders)',
+      whereArgs: <Object?>[...ids],
+    );
+  }
+
+  /// Total bytes of a selection, for the "you are exporting N MB" line.
+  Future<int> totalBytes(List<int> ids) async {
+    if (ids.isEmpty) return 0;
+    final placeholders = List.filled(ids.length, '?').join(',');
+    final rows = await _db.rawQuery(
+      'SELECT COALESCE(SUM(size_bytes), 0) AS total FROM photos WHERE id IN ($placeholders)',
+      ids,
+    );
+    return (rows.first['total'] as int?) ?? 0;
+  }
+
   Future<void> setCaption(int id, String? caption) async {
     await _db.update(
       'photos',

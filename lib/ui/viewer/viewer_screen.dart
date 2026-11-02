@@ -116,6 +116,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     final photo = _photo;
     final editDao = ref.read(editDaoProvider);
     final original = _savedRecipe;
+    final aspect = (photo.width != null && photo.height != null && photo.height! > 0)
+        ? photo.width! / photo.height!
+        : 1.0;
 
     await showModalBottomSheet<void>(
       context: context,
@@ -131,6 +134,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               child: EditPanel(
                 initial: original,
                 onChanged: (recipe) => setState(() => _recipe = recipe),
+                file: File(photo.path),
+                imageAspect: aspect,
+                decoded: _decoded,
               ),
             ),
             Padding(

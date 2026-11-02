@@ -4,6 +4,10 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
 
 ## Done since v1
 
+- **Multi-select and bulk actions.** Long-press to select, then rate, favourite,
+  add to an album or export as a ZIP in one transaction.
+- **Interactive crop.** Corner handles with an aspect lock, rule-of-thirds
+  guides and six presets — replacing the placeholder square-crop button.
 - **Duplicate detection.** 64-bit dHash from the existing thumbnails, banded
   candidate lookup, union-find grouping, keep-best ranking. Read-only: Lumen
   shows the groups and never deletes.
@@ -15,10 +19,6 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
 
 ## Milestone 1 — finish the daily loop (next)
 
-- **Batch operations.** Multi-select in the grid, then rate / favourite / add to
-  album / export for the whole selection.
-- **Interactive crop.** The current crop is a square preset; a real crop handle
-  overlay with aspect lock is the missing piece of the editor.
 - **Curves and levels.** The colour matrix handles linear adjustments; curves
   need a LUT texture. Worth doing properly.
 - **Video indexing.** Thumbnail frame extraction via platform codecs, playback
