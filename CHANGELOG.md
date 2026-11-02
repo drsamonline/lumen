@@ -1,5 +1,32 @@
 # Changelog
 
+## 1.7.2 - the CLI's --json flag now exists
+
+It was advertised in `--help` and never implemented, which is worse than absent:
+a documented flag that silently does nothing.
+
+- `stats`, `search`, `recent` and `compact` all emit stable JSON with `--json`.
+  Stable on purpose — a launcher, a script or `jq` may be reading it.
+- `compact` in JSON mode reports what it *would* have freed as well as what it
+  did, so a dry run and a real run have the same shape.
+- README documents the headless CLI and how to reach it from a tray launcher,
+  including the honest limit that a detached spawn does not surface stdout.
+
+### On CLDR
+
+`drsamonline/CLDR` is **Command Line Dispatch & Route**, a Rust tray launcher —
+not the Unicode Common Locale Data Repository. They are unrelated, and the
+locale data one is not needed here: Flutter's `flutter_localizations` already
+carries CLDR-derived data for date and number formatting.
+
+The launcher is still a fair fit for a different reason: Lumen now has a CLI with
+machine-readable output, so a launcher can route to it. That is a one-line alias,
+not a dependency.
+
+Real localisation — Hindi and Gujarati UI strings, not just dates — remains
+undone and is a project rather than a patch. Half-translating (dates in Hindi,
+buttons in English) would look broken, so it has not been started.
+
 ## 1.7.1 - six red releases, and what caused them
 
 CI has been failing since 1.6.5. I reported green without checking, which is the

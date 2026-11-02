@@ -234,6 +234,48 @@ Your photos are never copied, moved or modified.
 
 ---
 
+## Headless CLI
+
+The same index and scanner without the interface. Pure Dart, so it compiles to a
+single native binary — `lumen-cli-linux-x64` and `lumen-cli-windows-x64.exe` ship
+alongside the app in every release.
+
+```
+lumen scan [--root DIR]     index the library
+lumen stats                 what the index holds
+lumen search QUERY          file names, folders, captions, tags
+lumen recent [N]            the N most recent photos
+lumen compact [--orphans|--all] [--yes]
+lumen --help
+```
+
+`--json` on `stats`, `search`, `recent` and `compact` gives stable objects, so
+anything that can run a process can consume the library:
+
+```bash
+lumen search "harbour" --json | jq -r '.photos[].path'
+lumen stats --json | jq .photos
+```
+
+The CLI and the app share one index file, so either can rescan what the other
+indexed. Both need SQLite 3 available to the dynamic loader — present on most
+Linux systems; on Windows put `sqlite3.dll` beside the exe.
+
+### Driving it from a launcher
+
+Any tray launcher or hotkey tool that runs a command can reach the library. In
+[CLDR](https://github.com/drsamonline/CLDR) that is one line in
+`~/.config/cldr/config.toml`:
+
+```toml
+alias.photos = "/run lumen search"
+```
+
+Then `/photos harbour` in the command window opens the library's index. Note the
+honest limit: CLDR spawns a routed command **detached** and does not render its
+stdout, so the results do not appear inside its window — use `--json` and pipe it
+somewhere, or open the app itself with `alias.lumen = "/run lumen"`.
+
 ## Known limitations
 
 - **The LAN gallery streams originals.** Edits appear in the grid thumbnail and

@@ -7,6 +7,7 @@
 //
 //   dart run bin/lumen.dart --help
 //   dart compile exe bin/lumen.dart -o lumen
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -34,7 +35,7 @@ Lumen — headless
 
 Options
   --data-dir DIR    where the index lives (default: the platform's data dir)
-  --json            machine-readable output where it makes sense
+  --json            machine-readable output, for a script or a launcher
 
 The index is the same file the app uses, so `lumen scan` in a terminal and a
 rescan in the app are the same operation.
@@ -143,6 +144,17 @@ Future<void> _stats(PhotoDao photos, RootsDao roots, String dataDir) async {
   final withGps = await photos.countWithGps();
   final folders = await roots.all();
 
+  if (args.has('json')) {
+    stdout.writeln(const JsonEncoder.withIndent('  ').convert(<String, Object?>{
+      'index': p.join(dataDir, 'lumen.db'),
+      'photos': total,
+      'favourites': favourites,
+      'withGps': withGps,
+      'folders': folders,
+    }));
+    return;
+  }
+
   stdout
     ..writeln('index      ${p.join(dataDir, 'lumen.db')}')
     ..writeln('photos     $total')
@@ -159,6 +171,18 @@ Future<void> _search(PhotoDao photos, _Args args) async {
     return;
   }
   final result = await photos.search(PhotoFilter(query: query), offset: 0, limit: 200);
+
+  if (args.has('json')) {
+    stdout.writeln(const JsonEncoder.withIndent('  ').convert(<String, Object?>{
+      'query': query,
+      'mode': result.mode.name,
+      'photos': <Map<String, Object?>>[
+        for (final photo in result.photos) _photoJson(photo),
+      ],
+    }));
+    return;
+  }
+
   if (result.photos.isEmpty) {
     stdout.writeln('no matches');
     return;
@@ -174,6 +198,16 @@ Future<void> _search(PhotoDao photos, _Args args) async {
 Future<void> _recent(PhotoDao photos, _Args args) async {
   final n = args.positional.isEmpty ? 20 : int.tryParse(args.positional.first) ?? 20;
   final rows = await photos.page(offset: 0, limit: n);
+
+  if (args.has('json')) {
+    stdout.writeln(const JsonEncoder.withIndent('  ').convert(<String, Object?>{
+      'photos': <Map<String, Object?>>[
+        for (final Photo photo in rows) _photoJson(photo),
+      ],
+    }));
+    return;
+  }
+
   for (final Photo photo in rows) {
     stdout.writeln('${photo.takenAt.toIso8601String().split('.').first}  ${photo.path}');
   }
@@ -183,25 +217,56 @@ Future<void> _compact(PhotoDao photos, String dataDir, _Args args) async {
   final compactor = CacheCompactor(photos, p.join(dataDir, 'thumbs'));
   final report = await compactor.survey();
 
+  final all = args.has('all');
+  final orphansOnly = args.has('orphans') || !all;
+  final canRun = !(report.orphanFiles == 0 && !all) && args.has('yes');
+
+  final freed = !canRun
+      ? 0
+      : orphansOnly
+          ? await compactor.deleteOrphans()
+          : await compactor.clearAll();
+
+  if (args.has('json')) {
+    stdout.writeln(const JsonEncoder.withIndent('  ').convert(<String, Object?>{
+      'thumbFiles': report.thumbFiles,
+      'thumbBytes': report.thumbBytes,
+      'livePhotos': report.livePhotos,
+      'orphanFiles': report.orphanFiles,
+      'orphanBytes': report.orphanBytes,
+      'deleted': canRun,
+      'freedBytes': freed,
+    }));
+    return;
+  }
+
   stdout
     ..writeln('thumbnails  ${report.thumbFiles} · ${CacheCompactor.human(report.thumbBytes)}')
     ..writeln('photos      ${report.livePhotos}')
     ..writeln('orphans     ${report.orphanFiles} · ${CacheCompactor.human(report.orphanBytes)}');
 
-  final all = args.has('all');
-  final orphansOnly = args.has('orphans') || !all;
-  if (report.orphanFiles == 0 && !all) {
-    stdout.writeln('nothing to reclaim');
+  if (!canRun) {
+    stdout.writeln(report.orphanFiles == 0 && !all
+        ? 'nothing to reclaim'
+        : 'dry run — add --yes to delete');
     return;
   }
-  if (!args.has('yes')) {
-    stdout.writeln('dry run — add --yes to delete');
-    return;
-  }
-
-  final freed = orphansOnly ? await compactor.deleteOrphans() : await compactor.clearAll();
   stdout.writeln('freed ${CacheCompactor.human(freed)}');
 }
+
+/// One photo as a stable JSON object. Stable because a launcher, a script or
+/// `jq` may be reading it.
+Map<String, Object?> _photoJson(Photo photo) => <String, Object?>{
+      'id': photo.id,
+      'path': photo.path,
+      'fileName': photo.fileName,
+      'folder': photo.folder,
+      'takenAt': photo.takenAt.toIso8601String(),
+      'rating': photo.rating,
+      'favourite': photo.isFavorite,
+      'width': photo.width,
+      'height': photo.height,
+    };
 
 /// Minimal flag parser: no dependency, no surprises.
 class _Args {
