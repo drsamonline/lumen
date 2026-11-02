@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/models/edit_recipe.dart';
 import 'crop_dialog.dart';
+import 'curve_editor.dart';
 
 /// The adjustment sheet. Every change is previewed live on the photo behind
 /// it; nothing is written until the user taps Apply.
@@ -36,6 +37,15 @@ class _EditPanelState extends State<EditPanel> {
   void _update(EditRecipe next) {
     setState(() => _recipe = next);
     widget.onChanged(next);
+  }
+
+  Future<void> _openCurve() async {
+    final points = await showCurveEditor(
+      context,
+      initial: _recipe.curve,
+    );
+    if (points == null) return;
+    _update(_recipe.copyWith(curve: points));
   }
 
   Future<void> _openCrop() async {
@@ -115,6 +125,12 @@ class _EditPanelState extends State<EditPanel> {
                     label: 'Crop',
                     active: _recipe.hasCrop,
                     onTap: _openCrop,
+                  ),
+                  _ToolButton(
+                    icon: Icons.show_chart,
+                    label: 'Curves',
+                    active: _recipe.hasCurve,
+                    onTap: _openCurve,
                   ),
                 ],
               ),

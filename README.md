@@ -9,7 +9,10 @@ A photo library that lives entirely on your machine. Offline, fast, and built to
 do the one thing Picasa did better than anything since: show you your own photos,
 instantly, without asking you to sign in to anything.
 
-One Flutter codebase, four real native builds: **Windows, Linux, macOS, Android**.
+One Flutter codebase, three real native builds: **Windows, Linux, Android**.
+All three are compiled on every push. macOS and iOS are deliberately out of
+scope — building either needs a macOS machine, and this project has no budget
+for one, so they are excluded rather than left half-supported.
 
 ---
 
@@ -35,9 +38,12 @@ One Flutter codebase, four real native builds: **Windows, Linux, macOS, Android*
 **Viewer**
 - Swipe, pinch-zoom, per-photo details.
 - Non-destructive editing: rotate, flip, brightness, contrast, saturation,
-  warmth, plus a real crop tool — corner handles, rule-of-thirds guides, and
-  Free / 1:1 / 4:3 / 3:4 / 3:2 / 16:9 presets. Stored as a small JSON recipe in
-  SQLite; the original file is never modified.
+  warmth, a real crop tool (corner handles, rule-of-thirds guides, Free / 1:1 /
+  4:3 / 3:4 / 3:2 / 16:9 presets), and a **tone curve** with draggable points and
+  six presets. Stored as a small JSON recipe in SQLite; the original file is
+  never modified.
+- Saving an edit also re-renders the cached grid thumbnail, so the tile shows
+  what the viewer shows.
 - Export an edited copy as a real PNG beside the original.
 
 **Browse**
@@ -128,26 +134,25 @@ You need the Flutter SDK (3.27 or newer — Dart 3.6+).
 ```bash
 cd lumen
 
-# 1. Generate the platform folders (android/, windows/, linux/, macos/)
-flutter create --platforms=android,windows,linux,macos .
+# 1. Generate the platform folders (android/, windows/, linux/)
+flutter create --platforms=android,windows,linux .
 
 # 2. Fetch packages
 flutter pub get
 
 # 3. Run on whichever platform you are sitting in front of
-flutter run -d windows      # or: linux, macos
+flutter run -d windows      # or: linux
 flutter run -d <device-id>  # Android
 ```
 
-`tool/setup.sh` (macOS/Linux) and `tool/setup.ps1` (Windows) do steps 1 and 2 in
-one go.
+`tool/setup.sh` (Linux) and `tool/setup.ps1` (Windows) do steps 1 and 2 in one
+go.
 
 ### Shipping builds
 
 ```bash
 flutter build windows --release
 flutter build linux --release
-flutter build macos --release
 flutter build apk --release --split-per-abi
 ```
 
@@ -179,8 +184,8 @@ On first run, tap **Use camera roll** on the setup screen; it adds
 
 CI runs on every push (`.github/workflows/test.yml`): `flutter analyze`, then
 `flutter test`, then three real compiles — Linux desktop, Windows desktop and an
-Android APK. That is the evidence behind "one codebase, four platforms"; macOS
-is the only target not built in CI, because it needs a macOS runner.
+Android APK. That is the evidence behind "one codebase, three platforms" — every
+target this project claims is compiled on every push.
 
 Locally:
 
@@ -199,6 +204,8 @@ flutter test
   `test/metadata_check_test.dart` — the v1.1 feature logic.
 - `test/crop_math_test.dart`, `test/batch_ops_test.dart`, `test/places_test.dart`
   — v1.3–v1.4 logic.
+- `test/tone_curve_test.dart` — LUT generation, monotonicity, overshoot, LUT
+  application, and recipe round-tripping.
 - `test/scanner_test.dart`, `test/search_fallback_test.dart` — regressions found
   in the v1.4.1 audit.
 
@@ -237,6 +244,6 @@ missing, and why, is in `ROADMAP.md`. The two you will notice first:
    tool on `PATH` (see *Image formats* above). That is deliberate — bundling
    libheif and LibRaw would multiply the binary size and the licence surface.
 6. **The external decoders are CLI bindings, not FFI.** That keeps the build
-   dependency-free and crash-safe, and it works on Windows, Linux and macOS. On
+   dependency-free and crash-safe, and it works on Windows and Linux. On
    Android there is no shell, so those formats stay unavailable there until an
    FFI plugin is added — the interface is already shaped for one.

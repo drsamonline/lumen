@@ -1,15 +1,19 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/app_paths.dart';
 import '../../core/formats/format_registry.dart';
 import '../../core/models/album.dart';
 import '../../core/models/edit_recipe.dart';
 import '../../core/models/photo.dart';
 import '../../core/models/person.dart';
+import '../../core/models/tone_curve.dart';
 import '../../core/scan/exporter.dart';
+import '../../core/scan/lut_renderer.dart';
 import '../../state/providers.dart';
 import '../slideshow/slideshow_screen.dart';
 import '../widgets/edited_image.dart';
@@ -43,6 +47,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   /// Pixels decoded through the format registry, for formats the engine cannot
   /// read directly (HEIC, TIFF, RAW, JXL). Null for ordinary JPEG/PNG.
   ui.Image? _decoded;
+
+  /// Debounces the re-render of the live curve preview.
+  Timer? _curvePreviewTimer;
   bool _showInfo = true;
 
   bool? _favoriteOverride;
@@ -64,6 +71,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   @override
   void dispose() {
+    _curvePreviewTimer?.cancel();
     deferImageDisposal(_decoded);
     _page.dispose();
     super.dispose();
@@ -74,13 +82,22 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     final recipe = await ref.read(editDaoProvider).recipeFor(photo.id);
     final faces = await ref.read(personDaoProvider).facesFor(photo.id);
 
-    // Only pay the decode when the engine genuinely cannot read the file.
+    // Decode when the engine cannot read the file, or when a tone curve has to
+    // be baked into the pixels. A curve cannot be expressed as a colour matrix,
+    // so it is applied to the decoded image instead.
     ui.Image? decoded;
-    if (!ImageFormatRegistry.instance.isEngineNative(photo.path)) {
-      decoded = await ImageFormatRegistry.instance.decode(
+    final needsPixels =
+        !ImageFormatRegistry.instance.isEngineNative(photo.path) || recipe.hasCurve;
+    if (needsPixels) {
+      final base = await ImageFormatRegistry.instance.decode(
         File(photo.path),
         targetWidth: 2400,
       );
+      if (base != null) {
+        decoded = recipe.hasCurve
+            ? await LutRenderer.applyCurve(base, ToneCurve(recipe.curve))
+            : base;
+      }
     }
 
     if (!mounted) {
@@ -117,6 +134,33 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   // ------------------------------------------------------------------ editor
 
+  /// Re-renders the preview with the current curve.
+  ///
+  /// Applying a 256-entry LUT to a 1400 px image takes tens of milliseconds, so
+  /// doing it on every pointer move would make the slider stutter. Debouncing
+  /// keeps the drag smooth and still shows the result before the finger stops.
+  void _scheduleCurvePreview(EditRecipe recipe) {
+    _curvePreviewTimer?.cancel();
+    _curvePreviewTimer = Timer(const Duration(milliseconds: 240), () async {
+      if (!mounted) return;
+      final base = await ImageFormatRegistry.instance.decode(
+        File(_photo.path),
+        targetWidth: 1400,
+      );
+      if (base == null) return;
+      final image = recipe.hasCurve
+          ? await LutRenderer.applyCurve(base, ToneCurve(recipe.curve))
+          : base;
+      if (!mounted) {
+        deferImageDisposal(image);
+        return;
+      }
+      final previous = _decoded;
+      setState(() => _decoded = image);
+      deferImageDisposal(previous);
+    });
+  }
+
   Future<void> _openEditor() async {
     final photo = _photo;
     final editDao = ref.read(editDaoProvider);
@@ -138,7 +182,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               constraints: BoxConstraints(maxHeight: maxHeight),
               child: EditPanel(
                 initial: original,
-                onChanged: (recipe) => setState(() => _recipe = recipe),
+                onChanged: (recipe) {
+                  final curveChanged = recipe.curve != _recipe.curve;
+                  setState(() => _recipe = recipe);
+                  if (curveChanged) _scheduleCurvePreview(recipe);
+                },
                 file: File(photo.path),
                 imageAspect: aspect,
                 decoded: _decoded,
@@ -163,9 +211,19 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
                         final navigator = Navigator.of(sheetContext);
-                        await editDao.save(photo.id, _recipe);
+                        final saved = _recipe;
+                        await editDao.save(photo.id, saved);
+
+                        // Regenerate the cached thumbnail so the grid tile shows
+                        // the edit too. Skipping this is why most photo apps
+                        // show the unedited photo in the grid.
+                        await Exporter.regenerateThumbnail(photo, saved);
+                        final thumb = await AppPaths.thumbFile(photo.id);
+                        await FileImage(thumb).evict();
+
                         if (!mounted) return;
-                        setState(() => _savedRecipe = _recipe);
+                        setState(() => _savedRecipe = saved);
+                        ref.read(libraryControllerProvider).refresh();
                         navigator.pop();
                         messenger.showSnackBar(
                           const SnackBar(content: Text('Edit saved')),

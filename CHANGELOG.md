@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.5.0 - tone curves, and macOS removed for good
+
+**Tone curves**
+
+- `ToneCurve` with monotone cubic (Fritsch-Carlson) interpolation to a 256-entry
+  LUT. A plain spline overshoots between control points, which on a tone curve
+  shows as a bright ring around a dark edge.
+- Applied on the CPU, not in a fragment shader, so the grid thumbnail, the
+  viewer and the exported PNG use the same numbers and no driver can compile a
+  shader and then draw nothing.
+- Curve editor: draggable points, tap to add, long-press to remove, six presets
+  (Linear, Medium contrast, Strong contrast, Lift shadows, Matte, Bright).
+- Live preview debounced at 240 ms, so dragging stays smooth.
+- Stored as control points in the recipe, not as a 256-byte table.
+
+**Fixed while adding it**
+
+- **The grid thumbnail ignored every edit.** Saving a recipe updated the
+  database and the viewer, and left the tile showing the original photo.
+  `ARCHITECTURE.md` claimed the opposite. Saving now regenerates the thumbnail
+  through the same `Exporter.render` path the export uses.
+- **`Exporter.render` is now shared** by export and thumbnail, so the two cannot
+  drift apart on order of operations.
+
+**macOS and iOS removed**
+
+- Neither is a target, permanently: building either needs a macOS machine, and
+  this project will not carry that cost.
+- Purged from the pubspec description, README, setup scripts, roadmap, decoder
+  install hints and the repo description. `main.dart` no longer tests
+  `Platform.isMacOS`.
+- `ROADMAP.md` records it under "deliberately not doing" so it does not get
+  proposed again.
+
 ## 1.4.6 - Windows build: runner image, not our code
 
 Run 8 was the first three-platform run. Linux and Android both compiled; the

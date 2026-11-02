@@ -84,9 +84,9 @@ class ExternalDecoderPlugin implements ImageFormatPlugin {
     }
     _probed = true;
 
-    // A spawned shell is not available on Android/iOS; skip the search there
+    // A spawned shell is not available on Android; skip the search there
     // rather than paying a ProcessException per candidate.
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Platform.isAndroid) {
       _resolved = null;
       return FormatAvailability.needsInstall;
     }

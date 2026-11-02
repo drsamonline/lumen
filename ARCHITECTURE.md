@@ -111,6 +111,42 @@ image, the grid cannot disagree with the viewer.
 Export re-runs the same maths on a `Canvas` and writes a new PNG — the original
 file is opened read-only and never written.
 
+## Tone curves
+
+`ToneCurve` turns control points into a 256-entry lookup table using **monotone
+cubic** interpolation (Fritsch-Carlson). A plain spline overshoots between
+control points, which on a tone curve appears as a bright ring around a dark
+edge — the classic reason a hand-rolled curve tool looks wrong. The limiter step
+is what removes it, and there is a test that asserts a deliberately steep curve
+never exceeds its control points.
+
+The LUT is applied on the **CPU**, not in a fragment shader:
+
+- the same 256 numbers reach the grid thumbnail, the viewer and the exported
+  PNG, so the three cannot drift;
+- no asset pipeline, no GLSL, no driver that compiles a shader and draws nothing;
+- the cost is tens of milliseconds per render, paid when a photo opens or an
+  edit is saved — not sixty times a second.
+
+Curve changes are debounced by 240 ms before re-rendering the preview, so
+dragging a point stays smooth.
+
+### Order of operations
+
+The curve is applied to the **source pixels first**, then the colour matrix,
+then crop, flip and rotate. The exporter, the viewer and the thumbnail
+regenerator all use `Exporter.render`, so the order is defined once. Two code
+paths disagreeing about this order is the usual way a photo editor ships a
+preview that does not match its export.
+
+### The grid thumbnail
+
+Saving an edit calls `Exporter.regenerateThumbnail`, which decodes the original
+at 480 px, runs the full recipe, and overwrites the cached PNG. Without it the
+grid would show the unedited photo while the viewer showed the edit — which is
+what the code did before this change, and what `ARCHITECTURE.md` wrongly claimed
+it did not.
+
 ## Places without a map
 
 GPS is stored at index time as two floats. `places()` rounds both to one decimal

@@ -9,7 +9,7 @@ if ! command -v flutter >/dev/null 2>&1; then
 fi
 
 echo "==> Generating platform folders"
-flutter create --platforms=android,windows,linux,macos .
+flutter create --platforms=android,windows,linux .
 
 echo "==> Fetching packages"
 flutter pub get
@@ -18,5 +18,4 @@ echo
 echo "Done. Now run one of:"
 echo "  flutter run -d windows"
 echo "  flutter run -d linux"
-echo "  flutter run -d macos"
 echo "  flutter run -d <android-device-id>"

@@ -149,8 +149,7 @@ class ImageFormatRegistry {
         poweredBy: 'libheif (LGPL-3.0), libavif (BSD-2-Clause)',
         requirement:
             'heif-convert on PATH — Debian/Ubuntu: sudo apt install libheif-examples; '
-            'macOS: brew install libheif; Windows: the libheif release bundle. '
-            'ImageMagick also works.',
+            'Windows: the libheif release bundle. ImageMagick also works.',
         commands: <DecoderCommand>[
           DecoderCommand(
             executable: 'heif-convert',
@@ -168,7 +167,7 @@ class ImageFormatRegistry {
         poweredBy: 'libtiff (libtiff licence), via ImageMagick',
         requirement:
             'ImageMagick on PATH — Debian/Ubuntu: sudo apt install imagemagick; '
-            'macOS: brew install imagemagick; Windows: the ImageMagick installer.',
+            'Windows: the ImageMagick installer.',
         commands: _magickCandidates(),
       );
 
@@ -182,7 +181,7 @@ class ImageFormatRegistry {
         poweredBy: 'LibRaw (LGPL-2.1 / CDDL-1.0) and darktable (GPL-3.0)',
         requirement:
             'darktable-cli or ImageMagick on PATH — darktable: sudo apt install darktable; '
-            'macOS: brew install darktable. ImageMagick reads RAW through LibRaw.',
+            'Windows: the darktable installer. ImageMagick reads RAW through LibRaw.',
         commands: <DecoderCommand>[
           DecoderCommand(
             executable: 'darktable-cli',
@@ -200,7 +199,7 @@ class ImageFormatRegistry {
         poweredBy: 'libjxl (BSD-3-Clause)',
         requirement:
             'djxl on PATH — Debian/Ubuntu: sudo apt install libjxl-tools; '
-            'macOS: brew install jpeg-xl. ImageMagick also works.',
+            'Windows: the libjxl release bundle. ImageMagick also works.',
         commands: <DecoderCommand>[
           DecoderCommand(
             executable: 'djxl',
@@ -218,7 +217,7 @@ class ImageFormatRegistry {
         poweredBy: 'ImageMagick (ImageMagick licence)',
         requirement:
             'ImageMagick on PATH — Debian/Ubuntu: sudo apt install imagemagick; '
-            'macOS: brew install imagemagick; Windows: the ImageMagick installer.',
+            'Windows: the ImageMagick installer.',
         commands: _magickCandidates(),
       );
 }

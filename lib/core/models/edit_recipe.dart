@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'tone_curve.dart';
+
 /// A non-destructive edit. The original file on disk is never modified —
 /// Picasa's core promise, kept.
 ///
@@ -20,6 +22,7 @@ class EditRecipe {
     this.warmth = 0.0,
     this.vignette = 0.0,
     this.sharpen = 0.0,
+    this.curve = const <CurvePoint>[],
   });
 
   /// Clockwise rotation in degrees. Normalised to 0 / 90 / 180 / 270.
@@ -41,6 +44,13 @@ class EditRecipe {
   final double vignette;
   final double sharpen;
 
+  /// Control points of the tone curve, in normalised 0..1 space. Empty means
+  /// no curve. Stored as points rather than a 256-byte table so the recipe stays
+  /// small and stays editable.
+  final List<CurvePoint> curve;
+
+  bool get hasCurve => curve.length >= 2;
+
   static const EditRecipe empty = EditRecipe();
 
   bool get isIdentity =>
@@ -56,7 +66,8 @@ class EditRecipe {
       saturation == 0.0 &&
       warmth == 0.0 &&
       vignette == 0.0 &&
-      sharpen == 0.0;
+      sharpen == 0.0 &&
+      !hasCurve;
 
   bool get hasCrop => cropL != 0.0 || cropT != 0.0 || cropR != 1.0 || cropB != 1.0;
 
@@ -81,6 +92,7 @@ class EditRecipe {
     double? warmth,
     double? vignette,
     double? sharpen,
+    List<CurvePoint>? curve,
   }) {
     return EditRecipe(
       rotate: rotate ?? this.rotate,
@@ -96,8 +108,15 @@ class EditRecipe {
       warmth: warmth ?? this.warmth,
       vignette: vignette ?? this.vignette,
       sharpen: sharpen ?? this.sharpen,
+      curve: curve ?? this.curve,
     );
   }
+
+  /// The recipe without its curve, for callers that have already baked the
+  /// curve into the pixels they are about to draw.
+  EditRecipe get withoutCurve => curve.isEmpty
+      ? this
+      : copyWith(curve: const <CurvePoint>[]);
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'rotate': rotate,
@@ -110,6 +129,7 @@ class EditRecipe {
         'warmth': warmth,
         'vignette': vignette,
         'sharpen': sharpen,
+        if (curve.isNotEmpty) 'curve': ToneCurve(curve).toJson(),
       };
 
   factory EditRecipe.fromJson(Map<String, dynamic> j) {
@@ -128,6 +148,7 @@ class EditRecipe {
       warmth: ((j['warmth'] as num?) ?? 0).toDouble(),
       vignette: ((j['vignette'] as num?) ?? 0).toDouble(),
       sharpen: ((j['sharpen'] as num?) ?? 0).toDouble(),
+      curve: ToneCurve.fromJson(j['curve']).points,
     );
   }
 

@@ -7,7 +7,7 @@ if (-not (Get-Command flutter -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host '==> Generating platform folders'
-flutter create --platforms=android,windows,linux,macos .
+flutter create --platforms=android,windows,linux .
 
 Write-Host '==> Fetching packages'
 flutter pub get

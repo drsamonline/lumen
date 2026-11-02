@@ -17,8 +17,11 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Desktop platforms have no bundled SQLite plugin, so we run sqflite on the
-  // FFI implementation. Android/iOS keep the default plugin factory.
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  // FFI implementation. Android keeps the default plugin factory.
+  //
+  // macOS and iOS are deliberately not targets: building either needs a macOS
+  // machine, so they are out of scope for this project rather than untested.
+  if (Platform.isWindows || Platform.isLinux) {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
   }

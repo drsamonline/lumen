@@ -4,6 +4,8 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
 
 ## Done since v1
 
+- **Tone curves.** Monotone cubic LUT, CPU-applied, with a draggable editor and
+  six presets. Saving an edit now re-renders the grid thumbnail too.
 - **Multi-select and bulk actions.** Long-press to select, then rate, favourite,
   add to an album or export as a ZIP in one transaction.
 - **Interactive crop.** Corner handles with an aspect lock, rule-of-thirds
@@ -24,8 +26,8 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
 
 ## Milestone 1 — finish the daily loop (next)
 
-- **Curves and levels.** The colour matrix handles linear adjustments; curves
-  need a LUT texture. Worth doing properly.
+- **Levels.** Curves are done; explicit input/output level handles (black point,
+  white point, gamma) are the remaining half of the classic pair.
 - **Video indexing.** Thumbnail frame extraction via platform codecs, playback
   through `video_player`, and the same timeline treatment.
 
@@ -52,8 +54,6 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
 
 ## Milestone 4 — reach and polish
 
-- **iOS.** The codebase already targets it; only the folder-access model needs
-  work (photo-library permission instead of a folder picker).
 - **RAW as first-class citizens.** Reading RAW works today through
   `darktable-cli` or ImageMagick. What is missing is *developing* one: an
   embedded preview is shown at the camera's JPEG size, and demosaicing at full
@@ -71,6 +71,10 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
 
 ## Deliberately not doing
 
+- **macOS and iOS, ever.** Building either requires a macOS machine. That is a
+  recurring cost this project will not carry, so both are excluded outright
+  rather than shipped untested. The code avoids macOS-only APIs so nothing
+  rots, but no target is offered and no CI job will exist.
 - Cloud sync, accounts, sharing links, "memories" emails. That is the thing
   Picasa was killed for becoming.
 - Any feature that requires a network request. If it cannot work on an
