@@ -38,13 +38,21 @@ class AppDatabase {
       options: OpenDatabaseOptions(
         version: 2,
         onConfigure: (d) async {
-          await d.execute('PRAGMA foreign_keys = ON');
+          // Pragmas go through rawQuery, never execute.
+          //
+          // `PRAGMA journal_mode = WAL` returns a row, and the Android plugin
+          // rejects execute() for anything that returns rows:
+          //   "Queries can be performed using SQLiteDatabase query or rawQuery
+          //    methods only."
+          // The FFI factory used on desktop is permissive about this, so the
+          // difference only ever showed up on a phone.
+          await _pragma(d, 'PRAGMA foreign_keys = ON');
           if (!inMemory) {
-            await d.execute('PRAGMA journal_mode = WAL');
+            await _pragma(d, 'PRAGMA journal_mode = WAL');
           }
-          await d.execute('PRAGMA synchronous = NORMAL');
-          await d.execute('PRAGMA temp_store = MEMORY');
-          await d.execute('PRAGMA cache_size = -16000');
+          await _pragma(d, 'PRAGMA synchronous = NORMAL');
+          await _pragma(d, 'PRAGMA temp_store = MEMORY');
+          await _pragma(d, 'PRAGMA cache_size = -16000');
         },
         onCreate: (d, version) => _createSchema(d),
         onUpgrade: (d, from, to) async {
@@ -59,6 +67,17 @@ class AppDatabase {
     );
 
     await _tryCreateFts();
+  }
+
+  /// A pragma is an optimisation. If one is unsupported or refused, the app must
+  /// still open — a photo library that will not start because it could not set a
+  /// cache size is not a photo library.
+  static Future<void> _pragma(Database d, String sql) async {
+    try {
+      await d.rawQuery(sql);
+    } catch (_) {
+      // Ignored on purpose.
+    }
   }
 
   Future<void> close() async {

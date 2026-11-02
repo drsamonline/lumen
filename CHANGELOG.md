@@ -1,5 +1,45 @@
 # Changelog
 
+## 1.6.2 - Android could not open its database
+
+The error screen added in 1.6.1 did its job on the first run: it named the
+exception instead of showing a blank window.
+
+- **Cause.** `PRAGMA journal_mode = WAL` returns a row. sqflite's Android plugin
+  rejects `execute()` for any statement that returns rows - "Queries can be
+  performed using SQLiteDatabase query or rawQuery methods only" - so
+  `onConfigure` threw, the database never opened, and startup aborted before the
+  first frame. The FFI factory used on desktop is permissive about this, which is
+  why every desktop build and every test passed.
+- **Fix.** Every pragma now goes through `rawQuery` inside a guarded `_pragma`
+  helper that swallows failures. A pragma is an optimisation; a photo library
+  that will not start because it could not set a cache size is not a photo
+  library.
+- **Regression guard.** `test/db_pragma_test.dart` scans `lib/` for
+  `execute('PRAGMA` and fails the build, so this cannot come back.
+
+## 1.6.1 - Android: report startup failures, and ask for photos
+
+- **Startup is wrapped.** Everything in `main()` runs before the first frame, so
+  an exception there painted nothing at all. A failure now shows a readable
+  screen with the error, the stack and a Copy button.
+- **The Android manifest had no permissions.** The repo does not commit
+  `android/`, so every build started from the bare manifest `flutter create`
+  writes. `tools/android_permissions.py` adds the six the app needs, plus
+  cleartext for the LAN gallery; it is idempotent and wired into both workflows.
+- **`permission_handler`** asks for photo access at the right moment, with a
+  Settings shortcut when permanently denied.
+- **Onboarding dead end fixed** on Android: it tested `existsSync()` before
+  asking, and under scoped storage those folders are invisible until the grant
+  lands, so "Use camera roll" added nothing and Start stayed disabled.
+
+## 1.6.0 - real installable builds
+
+- `.github/workflows/release.yml` builds Windows x64, Linux x64 and an Android
+  APK on a `v*` tag and attaches all three to a GitHub Release.
+- `tools/demo_photos.py`: `--from <folder>` replaces the demo gallery's frames
+  with real photographs in one command.
+
 ## 1.5.1 - audit of the tone-curve work
 
 Found by reading the new code end to end, before CI could report on it.
