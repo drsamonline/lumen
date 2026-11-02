@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.4.6 - Windows build: runner image, not our code
+
+Run 8 was the first three-platform run. Linux and Android both compiled; the
+Windows job failed before touching any of our Dart.
+
+- **Cause.** CMake reported `Generator Visual Studio 16 2019 could not find any
+  instance of Visual Studio`. Flutter's Windows build needs Visual Studio with
+  the "Desktop development with C++" workload, and when it cannot find one it
+  falls back to a hardcoded VS 2019 generator string rather than saying so.
+- **Fix.** The job is pinned to `windows-2022` instead of `windows-latest`, and
+  a `flutter doctor -v` step now runs before the build so the Visual Studio
+  version and workload status appear in the log. Without it the only signal was
+  a CMake error naming a generator nobody asked for.
+- **Not fixed by changing our code**, because there was nothing in our code to
+  change. Worth recording anyway: the first instinct with a red Windows build
+  is to look for a Windows-specific bug in the app, and there wasn't one.
+
 ## 1.4.5 - three platforms verified
 
 The first green run proved Linux compiles with every native plugin linked. The

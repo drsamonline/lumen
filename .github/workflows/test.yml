@@ -93,7 +93,13 @@ jobs:
 
   build-windows:
     name: Build Windows desktop
-    runs-on: windows-latest
+    # Pinned, not `windows-latest`. Flutter's Windows build needs Visual Studio
+    # with the "Desktop development with C++" workload, and when it cannot find
+    # one it falls back to the CMake generator "Visual Studio 16 2019", which
+    # then fails with "could not find any instance of Visual Studio". Pinning
+    # the image keeps that failure mode from arriving silently with a runner
+    # image change.
+    runs-on: windows-2022
     timeout-minutes: 40
     needs: analyze-and-test
 
@@ -107,6 +113,11 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+
+      # Prints the Visual Studio version and workload status. Without this the
+      # build failure is just "CMake could not find a generator".
+      - name: Report toolchain and Visual Studio
+        run: flutter doctor -v
 
       - name: Resolve packages
         run: flutter pub get
