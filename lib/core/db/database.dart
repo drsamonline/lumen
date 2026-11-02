@@ -36,7 +36,7 @@ class AppDatabase {
     _db = await databaseFactory.openDatabase(
       path,
       options: OpenDatabaseOptions(
-        version: 1,
+        version: 2,
         onConfigure: (d) async {
           await d.execute('PRAGMA foreign_keys = ON');
           if (!inMemory) {
@@ -47,6 +47,14 @@ class AppDatabase {
           await d.execute('PRAGMA cache_size = -16000');
         },
         onCreate: (d, version) => _createSchema(d),
+        onUpgrade: (d, from, to) async {
+          // v2 adds the perceptual hash used for duplicate detection. Older
+          // libraries simply get the column; a duplicate scan backfills it.
+          if (from < 2) {
+            await d.execute('ALTER TABLE photos ADD COLUMN dhash INTEGER');
+            await d.execute('CREATE INDEX IF NOT EXISTS idx_photos_dhash ON photos(dhash)');
+          }
+        },
       ),
     );
 
@@ -88,7 +96,8 @@ class AppDatabase {
         tags          TEXT,
         thumb_ready   INTEGER NOT NULL DEFAULT 0,
         missing       INTEGER NOT NULL DEFAULT 0,
-        indexed_ms    INTEGER NOT NULL DEFAULT 0
+        indexed_ms    INTEGER NOT NULL DEFAULT 0,
+        dhash         INTEGER
       )
     """);
 
@@ -96,6 +105,7 @@ class AppDatabase {
     batch.execute('CREATE INDEX idx_photos_folder ON photos(folder)');
     batch.execute('CREATE INDEX idx_photos_thumb ON photos(thumb_ready)');
     batch.execute('CREATE INDEX idx_photos_rating ON photos(rating)');
+    batch.execute('CREATE INDEX idx_photos_dhash ON photos(dhash)');
 
     batch.execute("""
       CREATE TABLE library_roots (

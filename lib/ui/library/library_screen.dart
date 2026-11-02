@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/db/photo_dao.dart';
 import '../../state/providers.dart';
+import '../duplicates/duplicates_screen.dart';
 import 'photo_grid.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -66,6 +67,13 @@ class LibraryScreen extends ConsumerWidget {
               PopupMenuItem(value: PhotoSort.dateAddedDesc, child: Text('Recently indexed')),
               PopupMenuItem(value: PhotoSort.nameAsc, child: Text('File name')),
             ],
+          ),
+          IconButton(
+            tooltip: 'Find duplicates',
+            icon: const Icon(Icons.filter_none),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const DuplicatesScreen()),
+            ),
           ),
           IconButton(
             tooltip: 'Favourites only',

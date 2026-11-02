@@ -2,11 +2,19 @@
 
 Ordered by how much each one changes daily use, not by how fun it is to build.
 
+## Done since v1
+
+- **Duplicate detection.** 64-bit dHash from the existing thumbnails, banded
+  candidate lookup, union-find grouping, keep-best ranking. Read-only: Lumen
+  shows the groups and never deletes.
+- **Album export as ZIP.** Store-only, streamed to disk.
+- **Verified metadata stripping on export.** The written file is read back and
+  scanned, so "nothing left" is a measurement rather than a claim.
+- **Three-stage search.** Exact → substring → one-edit typo tolerance, with the
+  UI reporting which stage answered.
+
 ## Milestone 1 — finish the daily loop (next)
 
-- **Duplicate detection.** Content hash on index (there is a `content_hash`
-  column waiting), then a "Duplicates" view with keep-best. Every long-lived
-  photo library has thousands.
 - **Batch operations.** Multi-select in the grid, then rate / favourite / add to
   album / export for the whole selection.
 - **Interactive crop.** The current crop is a square preset; a real crop handle

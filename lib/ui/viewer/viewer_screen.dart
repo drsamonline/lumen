@@ -151,15 +151,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     messenger.showSnackBar(
       const SnackBar(content: Text('Rendering edited copy…')),
     );
-    final file = await Exporter.exportEdited(_photo, _recipe);
+    final result = await Exporter.exportEdited(_photo, _recipe);
     if (!mounted) return;
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
       SnackBar(
         content: Text(
-          file == null
+          result == null
               ? 'Could not export this file.'
-              : 'Saved ${file.path.split(Platform.pathSeparator).last}',
+              : 'Saved ${result.file.path.split(Platform.pathSeparator).last} · ${result.report}',
         ),
       ),
     );

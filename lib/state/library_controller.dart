@@ -43,7 +43,12 @@ class LibraryController extends ChangeNotifier {
   bool _loadingMore = false;
   bool get isLoadingMore => _loadingMore;
 
-  bool get hasMore => _photos.length < _total;
+  /// Approximate matches (substring / typo) come back as one bounded window,
+  /// so paging past them would repeat rows. Only exact results page.
+  bool get hasMore => _searchMode == SearchMode.exact && _photos.length < _total;
+
+  SearchMode _searchMode = SearchMode.exact;
+  SearchMode get searchMode => _searchMode;
 
   List<DateBucket> _buckets = const <DateBucket>[];
   List<DateBucket> get buckets => _buckets;
@@ -58,12 +63,14 @@ class LibraryController extends ChangeNotifier {
     notifyListeners();
     try {
       _total = await _dao.count(_filter);
-      final page = await _dao.page(offset: 0, limit: pageSize, filter: _filter);
+      final result = await _dao.search(_filter, offset: 0, limit: pageSize);
+      _searchMode = result.mode;
       _photos
         ..clear()
-        ..addAll(page);
+        ..addAll(result.photos);
+      if (_searchMode != SearchMode.exact) _total = _photos.length;
       _buckets = await _dao.dateBuckets(_filter);
-      _requestThumbs(page);
+      _requestThumbs(result.photos);
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -77,13 +84,13 @@ class LibraryController extends ChangeNotifier {
     _loadingMore = true;
     if (_alive) notifyListeners();
     try {
-      final page = await _dao.page(
+      final result = await _dao.search(
+        _filter,
         offset: _photos.length,
         limit: pageSize,
-        filter: _filter,
       );
-      _photos.addAll(page);
-      _requestThumbs(page);
+      _photos.addAll(result.photos);
+      _requestThumbs(result.photos);
     } catch (e) {
       _error = e.toString();
     } finally {

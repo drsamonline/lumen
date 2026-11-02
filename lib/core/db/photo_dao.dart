@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 
 import '../models/photo.dart';
+import '../search/fuzzy.dart';
 import 'database.dart';
 
 /// Which slice of the library the grid is showing.
@@ -148,6 +149,46 @@ class PhotoDao {
     await _db.delete('photos', where: 'missing = 1');
   }
 
+  Future<void> setDhash(int id, int? hash) async {
+    await _db.update(
+      'photos',
+      <String, Object?>{'dhash': hash},
+      where: 'id = ?',
+      whereArgs: <Object?>[id],
+    );
+  }
+
+  /// Photos still waiting for a perceptual hash, newest first so the most
+  /// interesting duplicates are found first if the user stops early.
+  Future<List<int>> idsMissingHash({int limit = 200000}) async {
+    final rows = await _db.query(
+      'photos',
+      columns: <String>['id'],
+      where: 'dhash IS NULL AND missing = 0',
+      orderBy: 'taken_at_ms DESC',
+      limit: limit,
+    );
+    return rows.map((r) => r['id'] as int).toList(growable: false);
+  }
+
+  Future<List<HashRow>> hashes() async {
+    final rows = await _db.query(
+      'photos',
+      columns: <String>['id', 'dhash'],
+      where: 'dhash IS NOT NULL AND missing = 0',
+    );
+    return rows
+        .map((r) => HashRow(id: r['id'] as int, dhash: r['dhash'] as int))
+        .toList(growable: false);
+  }
+
+  Future<int> countMissingHash() async {
+    final rows = await _db.rawQuery(
+      'SELECT COUNT(*) AS c FROM photos WHERE dhash IS NULL AND missing = 0',
+    );
+    return (rows.first['c'] as int?) ?? 0;
+  }
+
   Future<void> setThumbReady(int id, bool ready) async {
     await _db.update(
       'photos',
@@ -214,6 +255,140 @@ class PhotoDao {
     _applyFilter(filter, where, args, forCount: true);
     final sql = 'SELECT COUNT(*) FROM photos WHERE ${where.join(' AND ')}';
     return Sqflite.firstIntValue(await _db.rawQuery(sql, args)) ?? 0;
+  }
+
+  /// Search that degrades gracefully instead of returning nothing.
+  ///
+  /// 1. the FTS5 / LIKE query the filter already describes (ranked by FTS);
+  /// 2. if that is empty, a substring pass over the same fields — this is what
+  ///    catches "sunset" inside "beach-sunset-2019";
+  /// 3. if that is still empty, an edit-distance pass over file names, so a
+  ///    typo ("reciept") still finds "receipt.jpg".
+  ///
+  /// The mode is reported back so the UI can say what it actually did rather
+  /// than silently showing approximate results as if they were exact.
+  Future<SearchResult> search(
+    PhotoFilter filter, {
+    required int offset,
+    required int limit,
+  }) async {
+    final primary = await page(offset: offset, limit: limit, filter: filter);
+    final query = filter.query.trim();
+    if (primary.isNotEmpty || query.isEmpty) {
+      return SearchResult(photos: primary, mode: SearchMode.exact);
+    }
+    if (query.length < 2) {
+      return const SearchResult(photos: <Photo>[], mode: SearchMode.exact);
+    }
+
+    final substring = await _pageSubstring(filter, offset: offset, limit: limit);
+    if (substring.isNotEmpty) {
+      return SearchResult(photos: substring, mode: SearchMode.substring);
+    }
+    if (query.length < 3) {
+      return const SearchResult(photos: <Photo>[], mode: SearchMode.exact);
+    }
+
+    final fuzzy = await _pageFuzzy(filter, offset: offset, limit: limit);
+    return SearchResult(photos: fuzzy, mode: SearchMode.fuzzy);
+  }
+
+  Future<List<Photo>> _pageSubstring(
+    PhotoFilter filter, {
+    required int offset,
+    required int limit,
+  }) async {
+    final tokens = filter.query
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
+    if (tokens.isEmpty) return const <Photo>[];
+
+    final where = <String>['missing = 0'];
+    final args = <Object?>[];
+    // Re-use the non-text parts of the filter, then add the substring clauses.
+    _applyFilter(filter.copyWith(query: ''), where, args, forCount: true);
+    for (final token in tokens) {
+      where.add('(file_name LIKE ? OR folder LIKE ? OR caption LIKE ? OR tags LIKE ?)');
+      final like = '%$token%';
+      args.addAll(<Object?>[like, like, like, like]);
+    }
+    args.addAll(<Object?>[limit, offset]);
+    final rows = await _db.rawQuery(
+      'SELECT * FROM photos WHERE ${where.join(' AND ')} '
+      'ORDER BY taken_at_ms DESC LIMIT ? OFFSET ?',
+      args,
+    );
+    return rows.map(Photo.fromMap).toList(growable: false);
+  }
+
+  Future<List<Photo>> _pageFuzzy(
+    PhotoFilter filter, {
+    required int offset,
+    required int limit,
+  }) async {
+    final tokens = filter.query
+        .trim()
+        .toLowerCase()
+        .split(RegExp(r'\s+'))
+        .where((t) => t.length >= 3)
+        .toList();
+    if (tokens.isEmpty) return const <Photo>[];
+
+    // Bounded candidate set: scoring every filename in a 500k library would
+    // stall the UI, and the newest 8000 is where a typo almost always points.
+    final rows = await _db.query(
+      'photos',
+      columns: <String>['id', 'file_name'],
+      where: 'missing = 0',
+      orderBy: 'taken_at_ms DESC',
+      limit: 8000,
+    );
+
+    final scored = <int, int>{};
+    for (final row in rows) {
+      final name = (row['file_name'] as String).toLowerCase();
+      final nameTokens = name
+          .replaceAll(RegExp(r'\.[a-z0-9]+$'), '')
+          .split(RegExp(r'[^a-z0-9]+'))
+          .where((t) => t.isNotEmpty);
+      var best = 1 << 30;
+      for (final token in tokens) {
+        for (final candidate in nameTokens) {
+          if (candidate.startsWith(token)) {
+            best = 0;
+            break;
+          }
+          final d = Fuzzy.withinOneEdit(token, candidate);
+          if (d < best) best = d;
+        }
+        if (best == 0) break;
+      }
+      if (best <= 1) scored[row['id'] as int] = best;
+    }
+    if (scored.isEmpty) return const <Photo>[];
+
+    final ids = scored.keys.toList()
+      ..sort((a, b) {
+        final byDistance = scored[a]!.compareTo(scored[b]!);
+        return byDistance != 0 ? byDistance : b.compareTo(a);
+      });
+    final window = ids.skip(offset).take(limit).toList();
+    if (window.isEmpty) return const <Photo>[];
+
+    final placeholders = List.filled(window.length, '?').join(',');
+    final photoRows = await _db.rawQuery(
+      'SELECT * FROM photos WHERE id IN ($placeholders)',
+      window,
+    );
+    final byId = <int, Photo>{
+      for (final r in photoRows) (r['id'] as int): Photo.fromMap(r),
+    };
+    return <Photo>[
+      for (final id in window)
+        if (byId[id] != null) byId[id]!,
+    ];
   }
 
   Future<List<Photo>> page({
@@ -361,6 +536,20 @@ class PhotoDao {
         return 'file_name COLLATE NOCASE ASC';
     }
   }
+}
+
+enum SearchMode { exact, substring, fuzzy }
+
+class SearchResult {
+  const SearchResult({required this.photos, required this.mode});
+  final List<Photo> photos;
+  final SearchMode mode;
+}
+
+class HashRow {
+  const HashRow({required this.id, required this.dhash});
+  final int id;
+  final int dhash;
 }
 
 class DateBucket {

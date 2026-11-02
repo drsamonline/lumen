@@ -6,16 +6,32 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 
 import '../app_paths.dart';
+import '../export/metadata_check.dart';
 import '../models/edit_recipe.dart';
 import '../models/photo.dart';
 import 'thumbnail_service.dart';
+
+/// What an export produced, and proof of what is in it.
+class ExportResult {
+  const ExportResult({required this.file, required this.leftover});
+
+  final File file;
+
+  /// Metadata blocks still present in the written bytes. Empty means clean.
+  final List<String> leftover;
+
+  bool get clean => leftover.isEmpty;
+
+  String get report =>
+      clean ? 'checked: nothing left' : 'still contains ${leftover.join(', ')}';
+}
 
 /// Bakes an [EditRecipe] into a real image file.
 ///
 /// The original is never touched — this always writes a sibling file next to
 /// the source (or into the app's exports folder if that is not writable).
 class Exporter {
-  static Future<File?> exportEdited(Photo photo, EditRecipe recipe) async {
+  static Future<ExportResult?> exportEdited(Photo photo, EditRecipe recipe) async {
     final source = await ThumbnailService.decodeBounded(photo.path, maxWidth: 6000);
     if (source == null) return null;
 
@@ -78,7 +94,11 @@ class Exporter {
 
       final target = await _targetFile(photo);
       await target.writeAsBytes(bytes, flush: true);
-      return target;
+
+      // The canvas re-encode cannot carry EXIF, but "cannot" is a claim. Read
+      // the bytes back and report what is actually in the file.
+      final leftover = await MetadataCheck.scan(target);
+      return ExportResult(file: target, leftover: leftover);
     } catch (_) {
       source.dispose();
       return null;

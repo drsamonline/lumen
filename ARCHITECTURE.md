@@ -111,6 +111,43 @@ image, the grid cannot disagree with the viewer.
 Export re-runs the same maths on a `Canvas` and writes a new PNG — the original
 file is opened read-only and never written.
 
+## Duplicate detection
+
+A 64-bit dHash per photo, computed from the 480 px thumbnail that already exists
+— so the scan reuses work the grid already paid for. The grid is sampled from
+the **centre square**, which makes the hash independent of aspect ratio and
+guarantees every photo yields exactly 64 bits.
+
+Grouping is not all-pairs. The hash is split into four 16-bit bands and photos
+are bucketed by band; only photos sharing a band are compared, and each pair is
+verified by Hamming distance. That turns O(n²) into roughly O(n·k) for the
+candidate set, so 100,000 photos is still interactive.
+
+Union-find collapses transitive matches (A≈B, B≈C ⟹ A, B, C one group). The
+service is read-only by design — see `ROADMAP.md` for why deletion stays manual.
+
+## Export
+
+Two paths, both writing a **new** file:
+
+- **Edited copy** — the same colour matrix and crop maths as the viewer, run on
+  a `Canvas`, encoded to PNG. Re-encoding through a canvas cannot carry EXIF, but
+  "cannot" is a claim, so `MetadataCheck` then re-opens the written file and
+  walks its PNG chunks (or JPEG markers) looking for `eXIf`, `tEXt`, `iTXt`,
+  `zTXt`, `tIME`, APP1/APP2/APP13 and COM. The UI reports what was measured.
+- **Album ZIP** — store-only, because photos are already compressed. Written
+  through an `IOSink` with only the central directory held in memory, so a 4 GB
+  album does not need 4 GB of RAM.
+
+## Search
+
+`PhotoDao.search()` returns a `SearchMode` alongside the rows, because a photo
+library that silently shows approximate results as if they were exact is worse
+than one that finds nothing. The order is exact (FTS5) → substring (`LIKE
+%token%`, which is what catches a word in the middle of a filename) → one-edit
+tolerance over the newest 8,000 file names (bounded, because scoring a 500k-name
+library on every keystroke would stall the UI).
+
 ## LAN serving
 
 `HttpServer.bind(InternetAddress.anyIPv4, port)`. Four routes:

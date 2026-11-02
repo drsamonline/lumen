@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/db/photo_dao.dart';
+import '../state/library_controller.dart';
 import '../state/providers.dart';
 import 'library/photo_grid.dart';
 import 'widgets/empty_state.dart';
@@ -15,6 +16,36 @@ class SearchScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _ModeBanner extends StatelessWidget {
+  const _ModeBanner({required this.controller});
+
+  final LibraryController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final mode = controller.searchMode;
+    if (mode == SearchMode.exact) return const SizedBox.shrink();
+
+    final scheme = Theme.of(context).colorScheme;
+    final message = mode == SearchMode.substring
+        ? 'Partial matches — the exact words were not found'
+        : 'Near matches — spelling corrected';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: scheme.tertiaryContainer,
+      child: Text(
+        message,
+        style: Theme.of(context)
+            .textTheme
+            .labelSmall
+            ?.copyWith(color: scheme.onTertiaryContainer),
+      ),
+    );
+  }
 }
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
@@ -93,6 +124,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ],
             ),
           ),
+          if (_hasCriteria)
+            _ModeBanner(controller: ref.watch(searchLibraryProvider(_filter))),
           Expanded(
             child: _hasCriteria
                 ? PhotoGrid(

@@ -8,6 +8,7 @@ import '../core/db/photo_dao.dart';
 import '../core/db/roots_dao.dart';
 import '../core/lan/lan_beacon.dart';
 import '../core/lan/lan_server.dart';
+import '../core/scan/duplicate_service.dart';
 import '../core/scan/scanner.dart';
 import '../core/scan/thumbnail_service.dart';
 import '../core/scan/watch_service.dart';
@@ -48,6 +49,13 @@ final watchServiceProvider = Provider<WatchService>((ref) {
   final watcher = WatchService(ref.watch(scannerProvider));
   ref.onDispose(watcher.dispose);
   return watcher;
+});
+
+final duplicateServiceProvider = Provider<DuplicateService>((ref) {
+  return DuplicateService(
+    ref.watch(photoDaoProvider),
+    ref.watch(databaseProvider),
+  );
 });
 
 final lanServerProvider = Provider<LanServer>((ref) {

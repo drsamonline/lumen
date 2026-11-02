@@ -44,7 +44,26 @@ One Flutter codebase, four real native builds: **Windows, Linux, macOS, Android*
 **Search**
 - SQLite FTS5 over file name, folder, caption and tags, with a LIKE fallback on
   platforms whose SQLite lacks FTS5.
+- Three-stage fallback so a search rarely returns nothing: exact, then substring
+  ("each" finds "beach-sunset.jpg"), then typo-tolerant ("reciept" finds
+  "receipt.jpg"). The bar says which stage answered, rather than quietly showing
+  approximate results as if they were exact.
 - Filter chips for favourites and star ratings.
+
+**Duplicates**
+- Perceptual fingerprints (64-bit dHash) computed from the thumbnails that
+  already exist, so a duplicate scan costs one cheap decode per photo.
+- Grouping by 16-bit band lookup, then verified by Hamming distance — no
+  all-pairs comparison, so 100,000 photos is still fast.
+- Each group marks the copy worth keeping (largest pixel count, then largest
+  file) and totals the space the extras use. **Lumen never deletes a photo.**
+
+**Export**
+- Album → store-only ZIP, streamed straight to disk, so album size is bounded by
+  free space rather than RAM.
+- Edited copies are written as PNG, and the written bytes are then **read back**
+  and scanned for EXIF, XMP, IPTC, PNG text and time chunks. The snackbar says
+  "checked: nothing left" only when that is literally true of the file on disk.
 
 **LAN streaming**
 - Turn it on in Settings and any browser on your Wi-Fi can browse the whole
@@ -55,6 +74,14 @@ One Flutter codebase, four real native builds: **Windows, Linux, macOS, Android*
 **Offline, enforced**
 - No `http`, no `dio`, no webview, no telemetry. `test/offline_guard_test.dart`
   fails the build if anyone adds an outbound network client.
+
+---
+
+## Borrowed from the rest of the estate
+
+Lumen is the first non-web app in this fleet, but four of its features are
+direct ports of ideas already solved elsewhere in it. `CREDITS.md` lists exactly
+which repo each came from and what was actually taken.
 
 ---
 
@@ -150,6 +177,9 @@ missing, and why, is in `ROADMAP.md`. The two you will notice first:
    detection needs an on-device ML model, which is a milestone of its own.
 2. **No maps.** Picasa's geo view needs map tiles; tiles need the internet.
    The plan is bundled offline tiles or a vector basemap, not a network call.
-3. **Video files are not indexed.** Photos only, for now.
-4. **HEIC/TIFF** decode is not available through the Flutter engine by default.
+3. **Duplicate *deletion* is not automated.** Lumen groups and ranks; removing
+   the extras stays a manual act, because a wrong automatic delete is the one
+   mistake a photo library cannot apologise for.
+4. **Video files are not indexed.** Photos only, for now.
+5. **HEIC/TIFF** decode is not available through the Flutter engine by default.
    JPEG, PNG, WebP, GIF and BMP all work.

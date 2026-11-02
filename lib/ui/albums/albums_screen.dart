@@ -1,11 +1,15 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import '../../core/app_paths.dart';
 import '../../core/db/photo_dao.dart';
+import '../../core/export/zip_writer.dart';
 import '../../core/models/album.dart';
+import '../../core/models/photo.dart';
 import '../../state/providers.dart';
 import '../library/photo_grid.dart';
 import '../widgets/empty_state.dart';
@@ -152,21 +156,113 @@ class _AlbumCard extends ConsumerWidget {
   }
 }
 
-class AlbumDetailScreen extends ConsumerWidget {
+class AlbumDetailScreen extends ConsumerStatefulWidget {
   const AlbumDetailScreen({super.key, required this.album});
 
   final Album album;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.watch(albumLibraryProvider(album.id));
+  ConsumerState<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
+}
+
+class _AlbumDetailScreenState extends ConsumerState<AlbumDetailScreen> {
+  bool _exporting = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = ref.watch(albumLibraryProvider(widget.album.id));
     return Scaffold(
-      appBar: AppBar(title: Text(album.name)),
+      appBar: AppBar(
+        title: Text(widget.album.name),
+        actions: <Widget>[
+          if (_exporting)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 18),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            IconButton(
+              tooltip: 'Export album as ZIP',
+              icon: const Icon(Icons.archive_outlined),
+              onPressed: _exportZip,
+            ),
+        ],
+      ),
       body: PhotoGrid(
         controller: controller,
         emptyTitle: 'This album is empty',
         emptyMessage: 'Open a photo in the viewer and use "Add to album".',
       ),
     );
+  }
+
+  /// Bundles the album into a store-only ZIP.
+  ///
+  /// Photos are already compressed, so DEFLATE would burn CPU for ~0% gain.
+  /// The archive streams straight to disk, so album size is limited by free
+  /// space rather than by RAM.
+  Future<void> _exportZip() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final dao = ref.read(photoDaoProvider);
+
+    final ids = await dao.idsFor(PhotoFilter(albumId: widget.album.id));
+    if (ids.isEmpty) {
+      messenger.showSnackBar(const SnackBar(content: Text('This album is empty.')));
+      return;
+    }
+
+    final photos = <Photo>[];
+    for (final id in ids) {
+      final photo = await dao.byId(id);
+      if (photo != null) photos.add(photo);
+    }
+
+    String? directory;
+    try {
+      directory = await FilePicker.platform.getDirectoryPath(
+        dialogTitle: 'Where should the ZIP go?',
+      );
+    } catch (_) {
+      directory = null;
+    }
+    if (directory == null) return;
+
+    setState(() => _exporting = true);
+    try {
+      final safeName = widget.album.name
+          .replaceAll(RegExp(r'[^A-Za-z0-9 _-]'), '')
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '-');
+      final target = File(p.join(directory, '${safeName.isEmpty ? 'album' : safeName}.zip'));
+
+      final sources = <ZipSource>[];
+      for (var i = 0; i < photos.length; i++) {
+        final photo = photos[i];
+        final file = File(photo.path);
+        if (!await file.exists()) continue;
+        sources.add(ZipSource.file(
+          '${i + 1}-${photo.fileName}',
+          file,
+        ));
+      }
+
+      final bytes = await ZipArchiveWriter.write(target, sources);
+      messenger.showSnackBar(SnackBar(
+        content: Text(
+          '${sources.length} photos · ${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB '
+          '→ ${p.basename(target.path)}',
+        ),
+      ));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text('Export failed: $e')));
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
   }
 }
