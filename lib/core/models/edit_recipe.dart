@@ -222,9 +222,13 @@ class EditRecipe {
   /// The combined 4x5 matrix to hand to `ColorFilter.matrix`.
   List<double> colorMatrix() {
     var m = _identity();
-    if (saturation != 0) m = compose(_saturation(1 + saturation.clamp(-0.95, 1.5)), m);
+    // The full -1..1 range is meaningful at both ends: saturation -1 is the
+    // standard luminance matrix (a genuine greyscale), and contrast -1 is a
+    // zero-gain matrix (flat grey). Clamping short of -1 quietly left 5% of the
+    // original colour in the image.
+    if (saturation != 0) m = compose(_saturation(1 + saturation.clamp(-1.0, 1.5)), m);
     if (warmth != 0) m = compose(_warmth(warmth.clamp(-1.0, 1.0)), m);
-    if (contrast != 0) m = compose(_contrast(1 + contrast.clamp(-0.95, 1.5)), m);
+    if (contrast != 0) m = compose(_contrast(1 + contrast.clamp(-1.0, 1.5)), m);
     if (brightness != 0) m = compose(_brightness(brightness.clamp(-1.0, 1.0)), m);
     return m;
   }

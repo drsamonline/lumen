@@ -116,9 +116,20 @@ void main() {
         candidate('b.jpg', sizeBytes: 2500),
         candidate('c.jpg', sizeBytes: 500),
       ]);
+      // Pick by name: page() orders by taken_at_ms then id descending, so
+      // "the first two rows" is not the first two inserted.
       final all = await photos.page(offset: 0, limit: 10);
-      final ids = all.take(2).map((p) => p.id).toList();
-      expect(await photos.totalBytes(ids), 3500);
+      final a = all.firstWhere((p) => p.fileName == 'a.jpg');
+      final b = all.firstWhere((p) => p.fileName == 'b.jpg');
+      expect(await photos.totalBytes(<int>[a.id, b.id]), 3500);
+    });
+
+    test('ignores ids that are not in the library', () async {
+      await photos.upsertCandidates(<PhotoCandidate>[
+        candidate('a.jpg', sizeBytes: 1000),
+      ]);
+      final a = (await photos.page(offset: 0, limit: 1)).first;
+      expect(await photos.totalBytes(<int>[a.id, 99999]), 1000);
     });
   });
 }

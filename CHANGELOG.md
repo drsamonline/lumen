@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4.4 - first test run: 95 passing, 2 failing
+
+Static analysis is green. The suite ran under a real Dart VM for the first
+time: 95 passed, 2 failed. Both fixed.
+
+- **Real bug: saturation -1 did not fully desaturate.** `colorMatrix()`
+  clamped the adjustment to -0.95 before mapping it, so pulling Saturation all
+  the way down left 5% of the original colour in the image. The same clamp was
+  on contrast. Both now use the full -1..1 range, where the endpoints are
+  meaningful: saturation -1 is the standard luminance matrix, contrast -1 is a
+  zero-gain matrix.
+- **Wrong test, not wrong code:** `totalBytes` selected `page().take(2)` and
+  assumed insertion order. `page()` orders by `taken_at_ms DESC, id DESC`, so
+  the first two rows were the last two inserted. The test now picks by file
+  name, and a second case covers ids that are not in the library.
+
+Everything else passed on the first run, including the ones that were guesses:
+the ZIP round-trip through the system `unzip`, the scanner's skip-directory
+rule, and all seven search-fallback cases.
+
 ## 1.4.3 - first CI run, first real findings
 
 The first `flutter analyze` run reported 18 issues. All fixed; the build is now
