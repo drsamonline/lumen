@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 /// The support block, in the app.
 ///
 /// The landing page carries the same six handles with a scannable UPI QR. Here
-/// they are plain selectable text with a Copy button, because opening a browser
-/// would need `url_launcher` — and the offline guard test fails the build on
-/// `launchUrl(`. Copying a handle keeps the app's own promise: it never makes an
-/// outbound request, not even to say thank you.
+/// they are plain selectable text with a Copy button.
+///
+/// Deliberately no browser launching: that would mean the url_launcher package,
+/// whose entry point is one of the symbols `test/offline_guard_test.dart` bans.
+/// Copying a handle keeps the app's own promise — it makes no outbound request,
+/// not even to say thank you.
 class SupportDialog extends StatelessWidget {
   const SupportDialog({super.key});
 
