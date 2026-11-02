@@ -179,6 +179,7 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
                 final photo = group.photos[i];
                 return _PhotoTile(
                   photo: photo,
+                  extent: _tileExtent,
                   selected: _selected.contains(photo.id),
                   selecting: _selecting,
                   onTap: () => _selecting ? _toggle(photo.id) : _openViewer(photo),
@@ -186,6 +187,9 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
                 );
               },
               childCount: group.photos.length,
+              // Nothing in a tile needs its state preserved off screen, and
+              // keep-alives pin widgets — and their images — in memory.
+              addAutomaticKeepAlives: false,
             ),
           ),
         ),
@@ -283,6 +287,7 @@ class _MonthGroup {
 class _PhotoTile extends ConsumerWidget {
   const _PhotoTile({
     required this.photo,
+    required this.extent,
     required this.onTap,
     required this.onLongPress,
     this.selected = false,
@@ -290,6 +295,10 @@ class _PhotoTile extends ConsumerWidget {
   });
 
   final Photo photo;
+
+  /// The tile's logical size, used to decode the thumbnail at the size it is
+  /// actually drawn rather than at the full 480 px.
+  final double extent;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final bool selected;
@@ -301,6 +310,9 @@ class _PhotoTile extends ConsumerWidget {
     final thumbs = ref.watch(thumbnailServiceProvider);
     final thumbFile = File(AppPaths.thumbPath(photo.id));
     final hasThumb = thumbs.hasThumb(photo.id);
+    final tileDecodeWidth = (extent * MediaQuery.devicePixelRatioOf(context))
+        .round()
+        .clamp(120, ThumbnailService.thumbWidth);
 
     if (!hasThumb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -324,6 +336,11 @@ class _PhotoTile extends ConsumerWidget {
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
                 filterQuality: FilterQuality.low,
+                // The thumbnail is 480 px; a tile is 100-300. Decoding at the
+                // tile size keeps roughly a tenth of the decoded bytes in the
+                // image cache, and decoding less is faster than decoding more
+                // and scaling it down.
+                cacheWidth: tileDecodeWidth,
                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               )
             else

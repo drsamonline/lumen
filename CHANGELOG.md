@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.7.0 - four more performance wins, no new surface
+
+Nothing added, nothing removed from the interface. Four places where the app was
+doing more work than the result needed.
+
+- **Tiles decoded at the size they are drawn.** The thumbnail is 480 px and a
+  tile is 100-300, so every visible tile was decoding roughly ten times the
+  pixels it could show, and the image cache held them at full size. `cacheWidth`
+  is now the tile extent times the device pixel ratio. Less to decode is also
+  faster than decoding more and scaling down.
+- **Keep-alives off in the grid.** Nothing in a tile holds state worth
+  preserving off screen, and a keep-alive pins the widget and its decoded image
+  in memory. `addAutomaticKeepAlives: false`.
+- **EXIF read window halved, 512 KB to 256 KB.** The APP1 segment sits inside
+  the first 64 KB of a normal JPEG. Across a 50,000-photo first scan the old
+  window meant up to 25 GB of reads for metadata that was not there. Files with
+  anything past the window fall back to the filename date, which is what that
+  chain is for.
+- **Duplicate groups fetched in one query.** The screen called `byId` once per
+  group member — N platform round trips per group. New `PhotoDao.byIds` chunks
+  at 400 so it also stays inside SQLite's bound-variable limit, with a test that
+  crosses the boundary at 420 rows.
+
 ## 1.6.9 - widget tests, and a rail that could overflow
 
 Three of the four bugs you photographed were layout defects found by a human

@@ -36,9 +36,15 @@ class ExifData {
 }
 
 class ExifReader {
-  /// EXIF lives at the head of the file; reading 512 KB covers every normal
+  /// EXIF lives at the head of the file. The APP1 segment is normally inside
+  /// the first 64 KB, and 256 KB is generous even for a file carrying large
+  /// XMP. It used to be 512 KB, which is 25 GB of reads across a 50,000-photo
+  /// first scan for metadata that is not there.
+  ///
+  /// Anything past this window is a file we fall back on the file name for,
+  /// which is what the fallback chain is for.
   /// camera JPEG/HEIC without paying for a full-file read.
-  static const int _headBytes = 512 * 1024;
+  static const int _headBytes = 256 * 1024;
 
   static Future<ExifData> read(String path) async {
     try {

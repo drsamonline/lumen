@@ -361,6 +361,25 @@ class PhotoDao {
 
   // ------------------------------------------------------------------- reads
 
+  /// Fetches many photos at once, in chunks that stay inside SQLite's bound
+  /// variable limit. The duplicates screen used to call [byId] once per member,
+  /// which is N round trips through the platform channel per group.
+  Future<List<Photo>> byIds(List<int> ids) async {
+    if (ids.isEmpty) return const <Photo>[];
+    final out = <Photo>[];
+    const chunk = 400;
+    for (var i = 0; i < ids.length; i += chunk) {
+      final slice = ids.sublist(i, math.min(i + chunk, ids.length));
+      final placeholders = List.filled(slice.length, '?').join(',');
+      final rows = await _db.rawQuery(
+        'SELECT * FROM photos WHERE id IN ($placeholders)',
+        slice,
+      );
+      out.addAll(rows.map(Photo.fromMap));
+    }
+    return out;
+  }
+
   Future<Photo?> byId(int id) async {
     final rows = await _db.query('photos', where: 'id = ?', whereArgs: <Object?>[id], limit: 1);
     if (rows.isEmpty) return null;

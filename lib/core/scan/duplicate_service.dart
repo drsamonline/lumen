@@ -148,11 +148,15 @@ class DuplicateService {
           if (d > worst) worst = d;
         }
       }
-      final photos = <Photo>[];
-      for (final index in members) {
-        final photo = await _dao.byId(rows[index].id);
-        if (photo != null) photos.add(photo);
-      }
+      // One query for the whole group, then restored to group order.
+      final fetched = await _dao.byIds(<int>[
+        for (final index in members) rows[index].id,
+      ]);
+      final byId = <int, Photo>{for (final photo in fetched) photo.id: photo};
+      final photos = <Photo>[
+        for (final index in members)
+          if (byId[rows[index].id] case final photo?) photo,
+      ];
       if (photos.length >= 2) {
         groups.add(DuplicateGroup(photos: photos, maxDistance: worst));
       }
