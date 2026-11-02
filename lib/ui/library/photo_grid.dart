@@ -185,30 +185,41 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final markers = _markers(groups, constraints.maxWidth);
-              return Stack(
+              // Decide whether the rail is shown, then give it its own column
+              // rather than overlaying it. As an overlay it covered part of the
+              // last column, so the rightmost tile in every row was partly
+              // untappable and the year labels sat on top of photos.
+              const railWidth = 34.0;
+              var markers = _markers(groups, constraints.maxWidth);
+              final showRail = markers.length >= 3 && !_selecting;
+              if (showRail) {
+                markers = _markers(groups, constraints.maxWidth - railWidth);
+              }
+
+              final scroll = RefreshIndicator(
+                onRefresh: controller.refresh,
+                child: CustomScrollView(
+                  controller: _scroll,
+                  slivers: slivers,
+                ),
+              );
+
+              if (!showRail) return scroll;
+
+              return Row(
                 children: <Widget>[
-                  RefreshIndicator(
-                    onRefresh: controller.refresh,
-                    child: CustomScrollView(
-                      controller: _scroll,
-                      slivers: slivers,
+                  Expanded(child: scroll),
+                  SizedBox(
+                    width: railWidth,
+                    child: _YearScrubber(
+                      markers: markers,
+                      onSeek: (offset) {
+                        if (!_scroll.hasClients) return;
+                        final max = _scroll.position.maxScrollExtent;
+                        _scroll.jumpTo(offset.clamp(0.0, max));
+                      },
                     ),
                   ),
-                  if (markers.length >= 3 && !_selecting)
-                    Positioned(
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      child: _YearScrubber(
-                        markers: markers,
-                        onSeek: (offset) {
-                          if (!_scroll.hasClients) return;
-                          final max = _scroll.position.maxScrollExtent;
-                          _scroll.jumpTo(offset.clamp(0.0, max));
-                        },
-                      ),
-                    ),
                 ],
               );
             },

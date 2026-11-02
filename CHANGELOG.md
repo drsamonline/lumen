@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.6.3 - what the Android screenshots showed
+
+The app runs. Four defects were visible on a real phone that no desktop build
+could have shown.
+
+- **The image-format rows overflowed.** A `ListTile` title built from a `Row`
+  with an unbounded extension label: the RAW plugin claims eighteen extensions,
+  the row ran off the screen, and `Flexible` squeezed the plugin name to one
+  character per line - visible as stacked "a m e" and "A R A" behind the support
+  dialog. Now a padded row with an `Expanded` column, so text wraps instead of
+  overflowing. Long extension lists are also capped at six plus "+N more".
+- **The year rail covered the last column.** It was a `Stack` overlay, so the
+  rightmost tile in every row was partly untappable and the year labels sat on
+  top of photos. It now occupies its own column, and the column count is
+  recomputed for the narrower width.
+- **Settings printed a hardcoded "1.0.0"** while the release was 1.6.1. Worse
+  than printing nothing: it tells whoever reports a bug the wrong build. The
+  version now comes from `--dart-define=APP_VERSION`, injected from the tag in
+  the release workflow.
+
 ## 1.6.2 - Android could not open its database
 
 The error screen added in 1.6.1 did its job on the first run: it named the

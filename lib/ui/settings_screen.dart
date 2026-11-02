@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/formats/format_registry.dart';
+import '../core/version.dart';
 import '../core/formats/image_format.dart';
 import '../core/lan/lan_server.dart';
 import '../state/providers.dart';
@@ -279,7 +280,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('Version'),
-            subtitle: Text('1.0.0 · ${Platform.operatingSystem}'),
+            subtitle: Text('$kAppVersion · ${Platform.operatingSystem}'),
           ),
         ],
       ),
@@ -298,31 +299,48 @@ class _FormatTile extends StatelessWidget {
     final plugin = status.plugin;
     final ready = status.availability != FormatAvailability.needsInstall;
 
-    return ListTile(
-      leading: Icon(
-        ready ? Icons.check_circle_outline : Icons.download_outlined,
-        color: ready ? scheme.primary : scheme.onSurfaceVariant,
-      ),
-      title: Row(
+    final text = Theme.of(context).textTheme;
+
+    // Deliberately not a ListTile with a Row title: the extension list for RAW
+    // is eighteen entries long, the Row had no bounded width, and it overflowed
+    // so hard that the plugin name was squeezed to one character per line.
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Flexible(child: Text(plugin.displayName)),
-          const SizedBox(width: 8),
-          Text(
-            status.extensionsLabel,
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: scheme.onSurfaceVariant),
+          Icon(
+            ready ? Icons.check_circle_outline : Icons.download_outlined,
+            color: ready ? scheme.primary : scheme.onSurfaceVariant,
+            size: 22,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(plugin.displayName, style: text.bodyMedium),
+                const SizedBox(height: 2),
+                Text(
+                  status.extensionsLabel,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: text.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  ready
+                      ? plugin.poweredBy
+                      : '${plugin.requirement ?? 'Not installed'}\nUses ${plugin.poweredBy}',
+                  style: text.bodySmall?.copyWith(
+                    color: ready ? null : scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      subtitle: Text(
-        ready
-            ? plugin.poweredBy
-            : '${plugin.requirement ?? 'Not installed'}\nUses ${plugin.poweredBy}',
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
-      isThreeLine: !ready,
     );
   }
 }

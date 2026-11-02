@@ -60,5 +60,13 @@ class FormatStatus {
   final ImageFormatPlugin plugin;
   final FormatAvailability availability;
 
-  String get extensionsLabel => plugin.extensions.map((e) => e.toUpperCase()).join(', ');
+  /// Extensions, capped. The RAW plugin claims eighteen; listing them all turns
+  /// a settings row into a wall of text.
+  String get extensionsLabel {
+    const shown = 6;
+    final list = plugin.extensions.map((e) => e.toUpperCase()).toList();
+    if (list.length <= shown) return list.join(', ');
+    final rest = list.length - shown;
+    return '${list.take(shown).join(', ')} +$rest more';
+  }
 }
