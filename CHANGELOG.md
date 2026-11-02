@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.7.3 - releases publish again, and the CLI's real blocker
+
+- **The release workflow had failed for v1.6.6 through v1.7.0**, so nothing was
+  downloadable for seven versions. Those were the red-build releases, which is
+  the correct behaviour — a broken build must not publish — but it means the
+  last installable build was v1.6.5.
+- **The new CLI job broke the release.** `dart compile exe bin/lumen.dart` cannot
+  link the engine, and the database layer imports `package:sqflite` — the
+  *Flutter* wrapper — not `sqflite_common`. Removed from the release so the three
+  app builds publish; the CLI still runs as `dart run bin/lumen.dart`.
+- **The fix, for later:** move `Database`, `DatabaseFactory`, `OpenDatabaseOptions`
+  and `ConflictAlgorithm` in `lib/core/db/` to `package:sqflite_common/sqlite_api.dart`,
+  and replace `Sqflite.firstIntValue` with manual parsing. Then the core has no
+  Flutter import and the CLI compiles. Not done blind: it touches every DAO and
+  cannot be verified without the SDK.
+
 ## 1.7.2 - the CLI's --json flag now exists
 
 It was advertised in `--help` and never implemented, which is worse than absent:
