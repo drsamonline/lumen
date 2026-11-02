@@ -81,15 +81,25 @@ class LibraryScanner {
       final batch = <PhotoCandidate>[];
       const batchSize = 150;
 
+      // One read of the index, then every "have I seen this file?" question is a
+      // map lookup. It used to be a SQL query per file.
+      final index = await _dao.indexSnapshot();
+      // Every path the walk actually saw, so vanished files can be found in one
+      // statement at the end instead of stat-ing the whole library.
+      final seen = <String>{};
+
       Future<void> flush() async {
         if (batch.isEmpty) return;
-        added += await _dao.upsertCandidates(List<PhotoCandidate>.from(batch));
+        await _dao.upsertCandidates(List<PhotoCandidate>.from(batch));
         batch.clear();
       }
+
+      var walkedAnyRoot = false;
 
       for (final root in roots) {
         final dir = Directory(root);
         if (!await dir.exists()) continue;
+        walkedAnyRoot = true;
 
         await for (final entity in dir.list(recursive: true, followLinks: false)) {
           if (entity is! File) continue;
@@ -107,7 +117,9 @@ class LibraryScanner {
             continue;
           }
 
-          final existing = await _dao.byPath(entity.path);
+          seen.add(entity.path);
+
+          final existing = index[entity.path];
           if (existing != null &&
               existing.sizeBytes == stat.size &&
               existing.modifiedMs == stat.modified.millisecondsSinceEpoch) {
@@ -139,7 +151,11 @@ class LibraryScanner {
           ));
 
           scanned++;
-          if (existing != null) updated++;
+          if (existing == null) {
+            added++;
+          } else {
+            updated++;
+          }
 
           if (batch.length >= batchSize) {
             await flush();
@@ -158,8 +174,14 @@ class LibraryScanner {
 
       await flush();
 
-      // Anything the walk never touched is gone from disk.
-      removed = await _markVanished(roots);
+      // Anything the walk never touched is gone from disk. One statement.
+      //
+      // Skipped entirely when no root existed: that is what an unmounted drive
+      // looks like, and marking the whole library missing for it would be the
+      // worst possible reaction.
+      if (walkedAnyRoot) {
+        removed = await _dao.markMissingNotIn(seen);
+      }
 
       final finalProgress = ScanProgress(
         scanned: scanned,
@@ -181,26 +203,6 @@ class LibraryScanner {
 
   /// Re-index a single directory — used by the folder watcher.
   Future<ScanProgress> scanFolder(String folder) => scanRoots(<String>[folder]);
-
-  Future<int> _markVanished(List<String> roots) async {
-    if (roots.isEmpty) return 0;
-    final rows = await _appDb.db.query(
-      'photos',
-      columns: <String>['id', 'path'],
-      where: 'missing = 0',
-    );
-    var removed = 0;
-    for (final row in rows) {
-      final path = row['path'] as String;
-      final underRoot = roots.any((r) => path.startsWith(r));
-      if (!underRoot) continue;
-      if (!await File(path).exists()) {
-        await _dao.markMissing(row['id'] as int);
-        removed++;
-      }
-    }
-    return removed;
-  }
 
   void _emit(ScanProgress p) {
     if (!_progress.isClosed) _progress.add(p);

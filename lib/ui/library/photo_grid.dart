@@ -429,12 +429,13 @@ class _PhotoTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final thumbs = ref.watch(thumbnailServiceProvider);
     final thumbFile = File(AppPaths.thumbPath(photo.id));
-    final hasThumb = thumbFile.existsSync();
+    final hasThumb = thumbs.hasThumb(photo.id);
 
     if (!hasThumb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(thumbnailServiceProvider).request(photo.id);
+        thumbs.request(photo.id);
       });
     }
 

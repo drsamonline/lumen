@@ -43,7 +43,18 @@ class ThumbnailService {
     _pump();
   }
 
-  bool hasThumb(int photoId) => File(AppPaths.thumbPath(photoId)).existsSync();
+  /// Cached existence check.
+  ///
+  /// The grid asks this once per visible tile per rebuild. `existsSync` is a
+  /// synchronous syscall on the UI thread, so a scroll through a few hundred
+  /// tiles meant a few hundred of them per frame. One stat per photo, ever.
+  final Map<int, bool> _exists = <int, bool>{};
+
+  bool hasThumb(int photoId) =>
+      _exists[photoId] ??= File(AppPaths.thumbPath(photoId)).existsSync();
+
+  /// Drop the cached answer — call after deleting or regenerating a thumbnail.
+  void forgetThumb(int photoId) => _exists.remove(photoId);
 
   void _pump() {
     while (_active < _maxConcurrent && _queue.isNotEmpty) {
@@ -61,6 +72,7 @@ class ThumbnailService {
     try {
       final target = await AppPaths.thumbFile(photoId);
       if (await target.exists()) {
+        _exists[photoId] = true;
         await _dao.setThumbReady(photoId, true);
         if (!_ready.isClosed) _ready.add(photoId);
         return;
@@ -92,6 +104,7 @@ class ThumbnailService {
         byteData.lengthInBytes,
       );
       await target.writeAsBytes(png, flush: false);
+      _exists[photoId] = true;
 
       await _dao.setThumbReady(photoId, true);
       if (!_ready.isClosed) _ready.add(photoId);

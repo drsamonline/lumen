@@ -95,6 +95,19 @@ void main() {
       expect(raw.length, 1);
     });
 
+    test('an unmounted root does not empty the library', () async {
+      await touch('a.jpg');
+      await scanner.scanRoots(<String>[root.path]);
+      expect(await photos.count(), 1);
+
+      // The folder is gone entirely - a drive unplugged, not an empty library.
+      final missingRoot = '${root.path}-does-not-exist';
+      final progress = await scanner.scanRoots(<String>[missingRoot]);
+
+      expect(progress.removed, 0);
+      expect(await photos.count(), 1, reason: 'nothing may be marked missing');
+    });
+
     test('an empty root is harmless', () async {
       final progress = await scanner.scanRoots(<String>[root.path]);
       expect(progress.error, isNull);

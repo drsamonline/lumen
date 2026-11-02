@@ -48,6 +48,12 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
   Timer? _chromeTimer;
 
   final Map<int, EditRecipe> _recipes = <int, EditRecipe>{};
+
+  /// Decoded pixels, keyed by slide index and evicted as you move away.
+  ///
+  /// Keyed by index rather than photo id so "how far is this from where I am"
+  /// is a subtraction. Left unevicted, a slideshow running for an hour holds
+  /// every photo it has shown.
   final Map<int, ui.Image?> _decoded = <int, ui.Image?>{};
 
   @override
@@ -64,6 +70,7 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
     for (final image in _decoded.values) {
       deferImageDisposal(image);
     }
+    _decoded.clear();
     _page.dispose();
     super.dispose();
   }
@@ -118,7 +125,7 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
         targetWidth: 1920,
       );
       if (base != null) {
-        _decoded[photo.id] = recipe.hasCurve
+        _decoded[index] = recipe.hasCurve
             ? await LutRenderer.applyCurve(base, ToneCurve(recipe.curve))
             : base;
       }
@@ -127,6 +134,17 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
     // Without this a swiped-to photo that needed an exotic decode stayed blank
     // until the auto-advance timer happened to rebuild.
     if (mounted) setState(() {});
+  }
+
+  /// Keeps the current slide and its neighbours decoded, drops the rest.
+  void _evictFar() {
+    final stale = <int>[];
+    for (final index in _decoded.keys) {
+      if ((index - _index).abs() > 2) stale.add(index);
+    }
+    for (final index in stale) {
+      deferImageDisposal(_decoded.remove(index));
+    }
   }
 
   void _togglePlay() {
@@ -209,6 +227,7 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
                 itemCount: total,
                 onPageChanged: (i) {
                   setState(() => _index = i);
+                  _evictFar();
                   _load(i);
                   // Warm the next two frames ahead of the timer.
                   for (var k = 1; k <= 2; k++) {
@@ -224,7 +243,7 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
                       recipe: recipe,
                       fit: BoxFit.contain,
                       cacheWidth: 1920,
-                      decoded: _decoded[photo.id],
+                      decoded: _decoded[i],
                     ),
                   );
                 },

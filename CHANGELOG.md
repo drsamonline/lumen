@@ -1,5 +1,36 @@
 # Changelog
 
+## 1.6.5 - deep audit: the scanner was doing it the slow way
+
+Five defects, four of them performance, found by reading the hot paths instead
+of reacting to a screenshot.
+
+- **The scanner ran one SQL query per file.** `byPath()` inside the walk loop, so
+  a 50,000-photo library meant 50,000 platform-channel round trips before any
+  EXIF was read. It now loads one path-keyed snapshot into memory and every
+  "have I seen this?" is a map lookup. This contradicted the README's own claim
+  that a rescan takes seconds.
+- **The upsert was SELECT, then INSERT or UPDATE, per row** — three round trips
+  per file. Now a single `INSERT … ON CONFLICT(path) DO UPDATE`, which also
+  preserves the row id, so ratings, albums, faces and edits survive a rescan.
+  (The old code was already correct on that point; the new one keeps it and is
+  faster.)
+- **Vanished files cost 50,000 sequential `File.exists()` calls** at the end of
+  every scan. Now one `UPDATE … WHERE path NOT IN (SELECT …)` against a temp
+  table filled in chunks of 500, which also sidesteps SQLite's bound-variable
+  limit.
+- **The grid stat-ed the filesystem on every tile rebuild.** `existsSync` on the
+  UI thread, once per visible tile per frame. Now memoised in the thumbnail
+  service: one stat per photo, ever.
+- **The slideshow never released decoded images.** Every photo shown stayed in
+  memory for the whole run. Decodes are now keyed by slide index and evicted
+  beyond ±2, disposed after the frame as everywhere else.
+
+One behaviour change worth calling out: "mark vanished" is now skipped entirely
+when no root directory existed, because an unmounted drive and an empty library
+look identical from inside the walk. Previously an unplugged drive would have
+marked the whole library missing. There is a test for it.
+
 ## 1.6.4 - pinned month headers
 
 The library showed no dates at all while scrolling.

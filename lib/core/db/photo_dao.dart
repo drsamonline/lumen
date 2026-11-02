@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:sqflite/sqflite.dart';
 
 import '../formats/format_registry.dart';
@@ -135,32 +137,97 @@ class PhotoDao {
   // ------------------------------------------------------------------ writes
 
   /// Bulk upsert used by the scanner. Returns the number of genuinely new rows.
+  /// Writes a batch of scanned files.
+  ///
+  /// One statement per row, using SQLite's own upsert. The previous version ran
+  /// a SELECT and then an INSERT or UPDATE per row — three round trips through
+  /// the platform channel for every file, which is what made a first scan of a
+  /// large library slow. `ON CONFLICT(path) DO UPDATE` keeps the row id, so
+  /// ratings, albums, faces and edits survive a rescan.
   Future<int> upsertCandidates(List<PhotoCandidate> batch) async {
     if (batch.isEmpty) return 0;
-    var inserted = 0;
+
+    const columns = <String>[
+      'path', 'folder', 'file_name', 'ext', 'size_bytes', 'modified_ms',
+      'taken_at_ms', 'width', 'height', 'camera_make', 'camera_model', 'iso',
+      'f_number', 'exposure_time', 'focal_length', 'lat', 'lon', 'orientation',
+      'indexed_ms',
+    ];
+    final placeholders = List.filled(columns.length, '?').join(',');
+    final updates = columns
+        .where((c) => c != 'path')
+        .map((c) => '$c = excluded.$c')
+        .join(', ');
+    final sql = 'INSERT INTO photos (${columns.join(',')}) VALUES ($placeholders) '
+        'ON CONFLICT(path) DO UPDATE SET $updates, missing = 0';
+
     await _db.transaction((txn) async {
-      for (final c in batch) {
-        final existing = await txn.query(
-          'photos',
-          columns: <String>['id'],
-          where: 'path = ?',
-          whereArgs: <Object?>[c.path],
-          limit: 1,
+      for (final candidate in batch) {
+        final map = candidate.toMap();
+        await txn.rawInsert(
+          sql,
+          <Object?>[for (final column in columns) map[column]],
         );
-        if (existing.isEmpty) {
-          await txn.insert('photos', c.toMap());
-          inserted++;
-        } else {
-          await txn.update(
-            'photos',
-            c.toMap(),
-            where: 'id = ?',
-            whereArgs: <Object?>[existing.first['id']],
-          );
-        }
       }
     });
-    return inserted;
+    return batch.length;
+  }
+
+  /// The whole index as a path-keyed map, for the scanner to consult in memory.
+  ///
+  /// The scanner used to ask the database about each file individually. Loading
+  /// one snapshot instead turns N queries into one.
+  Future<Map<String, IndexedFile>> indexSnapshot() async {
+    final rows = await _db.query(
+      'photos',
+      columns: <String>['id', 'path', 'size_bytes', 'modified_ms'],
+    );
+    return <String, IndexedFile>{
+      for (final row in rows)
+        row['path'] as String: IndexedFile(
+          id: row['id'] as int,
+          sizeBytes: (row['size_bytes'] as int?) ?? 0,
+          modifiedMs: (row['modified_ms'] as int?) ?? 0,
+        ),
+    };
+  }
+
+  /// Marks every indexed photo the walk did not see as missing.
+  ///
+  /// Done in SQL against a temporary table rather than by stat-ing every known
+  /// path: 50,000 files meant 50,000 sequential `File.exists()` calls at the end
+  /// of every scan.
+  ///
+  /// An empty [seen] set marks everything, which is correct for a root that was
+  /// walked and is now empty. Deciding whether "empty" means "empty" or "drive
+  /// unplugged" is the scanner's job — it knows whether a root existed at all.
+  Future<int> markMissingNotIn(Set<String> seen) async {
+    final paths = seen.toList(growable: false);
+    const chunk = 500;
+
+    await _db.execute(
+      'CREATE TEMP TABLE IF NOT EXISTS seen_paths (path TEXT PRIMARY KEY)',
+    );
+    await _db.delete('seen_paths');
+    await _db.transaction((txn) async {
+      for (var i = 0; i < paths.length; i += chunk) {
+        final slice = paths.sublist(i, math.min(i + chunk, paths.length));
+        final batch = txn.batch();
+        for (final path in slice) {
+          batch.insert(
+            'seen_paths',
+            <String, Object?>{'path': path},
+            conflictAlgorithm: ConflictAlgorithm.ignore,
+          );
+        }
+        await batch.commit(noResult: true);
+      }
+    });
+
+    return _db.rawUpdate(
+      'UPDATE photos SET missing = 1 '
+      'WHERE missing = 0 AND path NOT IN (SELECT path FROM seen_paths)',
+    );
   }
 
   Future<void> markMissing(int id) async {
@@ -668,6 +735,19 @@ class PlaceBucket {
   }
 
   PhotoFilter get filter => PhotoFilter(nearLat: lat, nearLon: lon, radiusDeg: 0.25);
+}
+
+/// The minimum the scanner needs to know about an already-indexed file.
+class IndexedFile {
+  const IndexedFile({
+    required this.id,
+    required this.sizeBytes,
+    required this.modifiedMs,
+  });
+
+  final int id;
+  final int sizeBytes;
+  final int modifiedMs;
 }
 
 class HashRow {
