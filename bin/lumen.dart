@@ -69,7 +69,7 @@ Future<void> main(List<String> argv) async {
       case 'add-root':
         await _addRoot(roots, args);
       case 'stats':
-        await _stats(photos, roots, dataDir);
+        await _stats(photos, roots, dataDir, args);
       case 'search':
         await _search(photos, args);
       case 'recent':
@@ -138,7 +138,7 @@ Future<void> _addRoot(RootsDao roots, _Args args) async {
   stdout.writeln('added $dir');
 }
 
-Future<void> _stats(PhotoDao photos, RootsDao roots, String dataDir) async {
+Future<void> _stats(PhotoDao photos, RootsDao roots, String dataDir, _Args args) async {
   final total = await photos.count();
   final favourites = await photos.count(const PhotoFilter(favoritesOnly: true));
   final withGps = await photos.countWithGps();
