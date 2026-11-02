@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/app_paths.dart';
 import '../core/db/album_dao.dart';
 import '../core/db/database.dart';
 import '../core/db/edit_dao.dart';
@@ -10,6 +11,7 @@ import '../core/lan/lan_beacon.dart';
 import '../core/lan/lan_server.dart';
 import '../core/scan/duplicate_service.dart';
 import '../core/scan/scanner.dart';
+import '../core/scan/cache_compactor.dart';
 import '../core/scan/thumbnail_service.dart';
 import '../core/scan/watch_service.dart';
 import '../core/settings.dart';
@@ -116,6 +118,12 @@ final filteredLibraryProvider =
   ref.onDispose(controller.dispose);
   controller.setFilter(filter);
   return controller;
+});
+
+/// Reclaims disk from the thumbnail cache. Takes the thumbs directory rather
+/// than reading AppPaths, so the command-line tool can build the same object.
+final cacheCompactorProvider = Provider<CacheCompactor>((ref) {
+  return CacheCompactor(ref.watch(photoDaoProvider), AppPaths.thumbs.path);
 });
 
 final scanControllerProvider = ChangeNotifierProvider<ScanController>((ref) {

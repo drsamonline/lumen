@@ -1,6 +1,6 @@
 import 'package:path/path.dart' as p;
 
-import '../db/photo_dao.dart';
+import '../models/photo.dart';
 import 'capture_date.dart';
 import 'exif_reader.dart';
 

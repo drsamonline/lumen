@@ -12,7 +12,7 @@ void main() {
   test('no pragma is executed with execute()', () {
     final offenders = <String>[];
     final pattern = RegExp(
-      r"execute\(\s*['\"]\s*PRAGMA",
+      "execute\\(\\s*['\"]\\s*PRAGMA",
       caseSensitive: false,
     );
 

@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/app_paths.dart';
+import '../../core/db/photo_dao.dart';
 import '../../core/models/photo.dart';
+import '../../core/scan/thumbnail_service.dart';
 import '../../state/library_controller.dart';
 import '../../state/providers.dart';
 import '../viewer/viewer_screen.dart';

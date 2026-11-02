@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.7.1 - six red releases, and what caused them
+
+CI has been failing since 1.6.5. I reported green without checking, which is the
+real defect here; the code errors were the symptom.
+
+**What was broken**
+
+- `scan_worker.dart` and `photo_dao_batch_test.dart` used `PhotoCandidate`
+  without importing `models/photo.dart`.
+- `photo_grid.dart` lost its imports of `photo_dao.dart` and
+  `thumbnail_service.dart` when the year scrubber was extracted, so `PhotoFilter`
+  and `ThumbnailService` were undefined.
+- `db_pragma_test.dart` had a raw string containing an escaped quote, which Dart
+  cannot parse.
+
+**Why my checks missed it.** Every structural check I had verified that imports
+*resolve* — that the file named exists. None verified that a symbol actually
+arrives. Those are different questions and only the second one fails a build.
+
+**The fix that matters.** `tools/check_symbols.py`: for each file, find
+identifiers declared at column 0 somewhere in `lib/`, and fail if the file uses
+one it cannot see. Column 0 only, because matching indented lines turns every
+local variable into a false positive. Verified by deleting the import it was
+written for and watching it fail. Wired into CI ahead of `flutter analyze`,
+because it names the file and the missing import directly.
+
+**Also in this release**
+
+- `bin/lumen.dart`: the headless CLI — `scan`, `roots`, `add-root`, `stats`,
+  `search`, `recent`, `compact`. Pure Dart, so `dart compile exe` builds one
+  native binary. Released alongside the app from the same tag, as two extra
+  assets.
+- `CacheCompactor` and a Reclaim space dialog: finds thumbnails whose photo is
+  gone and frees the disk. Thumbnails are derived and rebuildable, so this never
+  touches a photo.
+- `database.dart` no longer imports `path_provider` — that Flutter plugin was
+  what made the whole core unbuildable outside the engine. It now takes a path.
+- `PhotoDao` no longer imports the image-format registry, which pulled in
+  `dart:ui`. Indexing rules live in `extension_index.dart`, with a test that
+  fails if the plugins and the indexer ever disagree.
+
 ## 1.7.0 - four more performance wins, no new surface
 
 Nothing added, nothing removed from the interface. Four places where the app was

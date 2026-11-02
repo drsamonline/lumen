@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lumen/core/db/database.dart';
 import 'package:lumen/core/db/photo_dao.dart';
+import 'package:lumen/core/models/photo.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 PhotoCandidate candidate(int i) => PhotoCandidate(

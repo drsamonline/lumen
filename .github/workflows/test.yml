@@ -48,6 +48,11 @@ jobs:
       - name: Resolve packages
         run: flutter pub get
 
+      # Cheap, and it names the file and the missing import directly. This is
+      # the check that would have caught six red releases earlier.
+      - name: Check for missing imports
+        run: python3 tools/check_symbols.py
+
       - name: Static analysis
         run: flutter analyze --no-fatal-infos
 

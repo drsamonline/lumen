@@ -11,6 +11,7 @@ import 'widgets/format_tile.dart';
 import '../core/formats/image_format.dart';
 import '../core/lan/lan_server.dart';
 import '../state/providers.dart';
+import 'reclaim_space_dialog.dart';
 import 'support_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -258,6 +259,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               );
             },
+          ),
+
+          const _SectionHeader('Storage'),
+          ListTile(
+            leading: const Icon(Icons.cleaning_services_outlined),
+            title: const Text('Reclaim space'),
+            subtitle: const Text(
+              'Thumbnails are rebuildable. Find the ones nothing can show any '
+              'more and free the disk they hold.',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => ReclaimSpaceDialog.show(context),
           ),
 
           const _SectionHeader('Support'),

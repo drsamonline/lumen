@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:sqflite/sqflite.dart';
 
-import '../formats/format_registry.dart';
+import '../formats/extension_index.dart';
 import '../models/photo.dart';
 import '../search/fuzzy.dart';
 import 'database.dart';
@@ -132,7 +132,7 @@ class PhotoDao {
   /// Delegates to the format registry, so a newly installed decoder plugin
   /// makes its formats indexable without touching this class.
   static bool isSupportedExtension(String ext) =>
-      ImageFormatRegistry.instance.isSupportedExtension(ext);
+      kIndexedExtensions.contains(ext.replaceFirst('.', '').toLowerCase());
 
   // ------------------------------------------------------------------ writes
 
@@ -360,6 +360,21 @@ class PhotoDao {
   }
 
   // ------------------------------------------------------------------- reads
+
+  /// How many indexed photos carry GPS coordinates.
+  Future<int> countWithGps() async {
+    final rows = await _db.rawQuery(
+      'SELECT COUNT(*) FROM photos WHERE lat IS NOT NULL AND lon IS NOT NULL '
+      'AND missing = 0',
+    );
+    return Sqflite.firstIntValue(rows) ?? 0;
+  }
+
+  /// Every id in the index, for cache reconciliation.
+  Future<Set<int>> allIds() async {
+    final rows = await _db.query('photos', columns: <String>['id']);
+    return <int>{for (final row in rows) row['id'] as int};
+  }
 
   /// Fetches many photos at once, in chunks that stay inside SQLite's bound
   /// variable limit. The duplicates screen used to call [byId] once per member,

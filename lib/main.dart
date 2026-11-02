@@ -49,7 +49,7 @@ Future<void> _boot() async {
   }
 
   await AppPaths.init();
-  await AppDatabase.instance.open();
+  await AppDatabase.instance.open(path: AppPaths.dbPath);
   await Settings.init();
 
   runApp(const ProviderScope(child: LumenApp()));

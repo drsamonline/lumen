@@ -1,7 +1,5 @@
 import 'package:sqflite/sqflite.dart';
 
-import '../app_paths.dart';
-
 /// The single SQLite index that drives the whole app.
 ///
 /// Design notes:
@@ -31,7 +29,15 @@ class AppDatabase {
 
   Future<void> open({String? pathOverride, bool inMemory = false}) async {
     if (_db != null) return;
-    final path = inMemory ? inMemoryDatabasePath : (pathOverride ?? AppPaths.dbPath);
+    // The path is passed in rather than resolved here. `path_provider` is a
+    // Flutter plugin, and this file has to compile into the command-line tool,
+    // where there is no engine to call it.
+    final path = inMemory ? inMemoryDatabasePath : pathOverride;
+    if (path == null) {
+      throw ArgumentError(
+        'AppDatabase.open needs a path (or inMemory: true).',
+      );
+    }
 
     _db = await databaseFactory.openDatabase(
       path,
