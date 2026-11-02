@@ -9,6 +9,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/formats/format_registry.dart';
 import '../../core/models/edit_recipe.dart';
 import '../../core/models/photo.dart';
+import '../../core/models/tone_curve.dart';
+import '../../core/scan/lut_renderer.dart';
 import '../../state/providers.dart';
 import '../widgets/edited_image.dart';
 import '../widgets/image_disposal.dart';
@@ -106,12 +108,20 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
     final recipe = await ref.read(editDaoProvider).recipeFor(photo.id);
     _recipes[photo.id] = recipe;
 
-    if (!ImageFormatRegistry.instance.isEngineNative(photo.path)) {
-      final image = await ImageFormatRegistry.instance.decode(
+    // Same rule as the viewer: decode when the engine cannot read the file, or
+    // when a tone curve has to be baked in.
+    final needsPixels =
+        !ImageFormatRegistry.instance.isEngineNative(photo.path) || recipe.hasCurve;
+    if (needsPixels) {
+      final base = await ImageFormatRegistry.instance.decode(
         File(photo.path),
         targetWidth: 1920,
       );
-      _decoded[photo.id] = image;
+      if (base != null) {
+        _decoded[photo.id] = recipe.hasCurve
+            ? await LutRenderer.applyCurve(base, ToneCurve(recipe.curve))
+            : base;
+      }
     }
 
     // Without this a swiped-to photo that needed an exotic decode stayed blank

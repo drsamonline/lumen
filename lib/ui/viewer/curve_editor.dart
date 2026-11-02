@@ -272,8 +272,10 @@ class _CurvePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CurvePainter oldDelegate) =>
-      oldDelegate.points != points ||
-      oldDelegate.lut != lut ||
-      oldDelegate.curveColor != curveColor;
+  bool shouldRepaint(_CurvePainter oldDelegate) {
+    // Always repaint: the painter is only constructed when the editor rebuilds,
+    // which happens on a drag. Comparing the point list would be wrong anyway,
+    // because it is mutated in place rather than replaced.
+    return true;
+  }
 }

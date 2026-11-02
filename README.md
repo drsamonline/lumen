@@ -226,6 +226,14 @@ Your photos are never copied, moved or modified.
 
 ---
 
+## Known limitations
+
+- **The LAN gallery streams originals.** Edits appear in the grid thumbnail and
+  in the app's viewer, but a browser on the network sees the unedited file at
+  full size. Serving a rendered copy would mean a decode per request; it is on
+  the roadmap rather than half-done.
+- **macOS and iOS are not supported**, permanently. See `ROADMAP.md`.
+
 ## Honest status
 
 This is a working v1, not a finished Picasa replacement. What is deliberately

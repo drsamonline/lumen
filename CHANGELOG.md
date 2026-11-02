@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.5.1 - audit of the tone-curve work
+
+Found by reading the new code end to end, before CI could report on it.
+
+- **A linear curve made a recipe non-identity.** `isIdentity` tested for the
+  *presence* of a curve rather than its effect, so saving a straight diagonal
+  stored a recipe that did nothing — and the test that asserted otherwise would
+  have failed. It now evaluates the curve.
+- **The curve editor only repainted by accident.** `shouldRepaint` compared the
+  point list by identity, but the list is mutated in place; it repainted only
+  because a fresh LUT was built each frame. Now explicit.
+- **The slideshow ignored curves.** It decoded only for non-native formats, so
+  a curved photo played unedited. It now uses the same rule as the viewer.
+- **Hand-rolled `sqrt` replaced** with `dart:math` in the Fritsch-Carlson
+  limiter. There was no reason for it.
+- **Unused imports and an unused field** removed from the curve editor and the
+  edit panel; `applyCurve` now returns non-null so callers stop reasoning about
+  a half-applied edit.
+
+Also documented the LAN gallery limitation: it streams originals, so edits are
+visible in the thumbnail and the app but not at full size in a browser.
+
 ## 1.5.0 - tone curves, and macOS removed for good
 
 **Tone curves**

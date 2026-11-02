@@ -67,7 +67,9 @@ class EditRecipe {
       warmth == 0.0 &&
       vignette == 0.0 &&
       sharpen == 0.0 &&
-      !hasCurve;
+      // Judged by the curve itself, not its presence: a straight diagonal is a
+      // no-op, so saving one should clear the recipe rather than store it.
+      (!hasCurve || ToneCurve(curve).isIdentity);
 
   bool get hasCrop => cropL != 0.0 || cropT != 0.0 || cropR != 1.0 || cropB != 1.0;
 
