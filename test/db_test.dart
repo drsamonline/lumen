@@ -73,11 +73,12 @@ void main() {
 
     test('re-indexing the same path updates instead of duplicating', () async {
       await photos.upsertCandidates(<PhotoCandidate>[candidate('a.jpg')]);
-      final inserted = await photos.upsertCandidates(<PhotoCandidate>[
+      await photos.upsertCandidates(<PhotoCandidate>[
         candidate('a.jpg', takenAtMs: 4000),
       ]);
-      expect(inserted, 0);
-      expect(await photos.count(), 1);
+      expect(await photos.count(), 1, reason: 'the path is unique');
+      expect((await photos.page(offset: 0, limit: 5)).single.takenAtMs, 4000,
+          reason: 'the second write updated the row');
     });
 
     test('filters by rating, favourite and folder', () async {

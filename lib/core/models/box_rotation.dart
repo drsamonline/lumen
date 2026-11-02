@@ -35,6 +35,8 @@ class BoxRotation {
   static int _normalise(int turns) {
     final t = turns % 360;
     if (t < 0) return _normalise(t + 360);
-    return (t ~/ 90) * 90 % 360;
+    // Nearest quarter turn, not the one below: 359 degrees is upright, and
+    // flooring sent it to 270 and drew the box sideways.
+    return (t / 90).round() * 90 % 360;
   }
 }

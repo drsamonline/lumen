@@ -30,8 +30,10 @@ class YearScrubber extends StatefulWidget {
   final ValueChanged<double> onSeek;
   final double width;
 
-  /// Minimum vertical space one label needs, including its padding.
-  static const double slotHeight = 20;
+  /// Minimum vertical space one label needs. A 12 px glyph is ~17 px tall and
+  /// carries 2 px of padding above and below, so 26 is the first honest number —
+  /// 20 thinned to a count that still overflowed by 80 px.
+  static const double slotHeight = 26;
 
   @override
   State<YearScrubber> createState() => _YearScrubberState();
@@ -44,7 +46,9 @@ class _YearScrubberState extends State<YearScrubber> {
   List<ScrubMarker> _visible(double height) {
     final markers = widget.markers;
     if (markers.isEmpty) return markers;
-    final capacity = math.max(2, (height / YearScrubber.slotHeight).floor());
+    final usable = height - 8; // the rail's own padding
+    final capacity =
+        math.max(1, (usable / YearScrubber.slotHeight).floor());
     if (markers.length <= capacity) return markers;
 
     final step = (markers.length / capacity).ceil();

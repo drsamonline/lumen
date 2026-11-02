@@ -33,7 +33,14 @@ class MonthHeaderDelegate extends SliverPersistentHeaderDelegate {
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
-          Text(label, style: text.titleSmall),
+          Flexible(
+            child: Text(
+              label,
+              style: text.titleSmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
           const SizedBox(width: 10),
           Text(
             '$count',
