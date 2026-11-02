@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0d0f11" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<title>Lumen — LAN gallery</title>
+<style>
+  :root{
+    --ink:#e8eaed; --paper:#0d0f11; --paper-2:#16191d; --muted:#9aa0a6;
+    --line:#24282e; --accent:#7fd1c8;
+  }
+  html[data-theme="light"]{
+    --ink:#1b1d20; --paper:#f4f1ea; --paper-2:#fffdf8; --muted:#5f6670;
+    --line:#ddd6c8; --accent:#1f6f66;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--paper);color:var(--ink);
+       font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .note{background:var(--paper-2);border-bottom:1px solid var(--line);
+        color:var(--muted);font-size:.78rem;padding:.55rem 1rem;text-align:center}
+  .note strong{color:var(--ink);font-weight:600}
+  header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:.7rem;
+         padding:.85rem 1rem;background:color-mix(in srgb,var(--paper) 88%,transparent);
+         backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent)}
+  h1{font-size:.95rem;font-weight:600;margin:0;letter-spacing:.02em}
+  .count{margin-left:auto;color:var(--muted);font-size:.8rem}
+  .icon{background:transparent;border:1px solid var(--line);color:var(--muted);
+        border-radius:.4rem;padding:.25rem .55rem;font:inherit;font-size:.78rem;cursor:pointer}
+  .icon:hover,.icon:focus-visible{color:var(--ink);border-color:var(--ink)}
+  .grid{display:grid;gap:4px;padding:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  @media (max-width:520px){.grid{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:3px;padding:6px}}
+  .tile{position:relative;aspect-ratio:1;overflow:hidden;background:var(--paper-2);
+        border-radius:6px;cursor:pointer;border:1px solid transparent}
+  .tile img{width:100%;height:100%;object-fit:cover;display:block}
+  .tile .fav{position:absolute;top:5px;right:6px;font-size:13px;color:#ffd166;text-shadow:0 1px 3px #000}
+  .tile .badge{position:absolute;bottom:5px;left:6px;font-size:.6rem;letter-spacing:.06em;
+               text-transform:uppercase;background:rgba(0,0,0,.55);color:#fff;
+               padding:.1rem .3rem;border-radius:.25rem}
+  .dupes{margin:0;padding:0 10px 24px}
+  .dupes h2{font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:1.2rem 0 .6rem}
+  .dupes .row{display:flex;gap:6px;flex-wrap:wrap}
+  .dupes .row img{width:86px;height:86px;object-fit:cover;border-radius:6px;border:1px solid var(--line)}
+  #lb{position:fixed;inset:0;z-index:20;display:none;background:#000;flex-direction:column}
+  #lb.on{display:flex}
+  #lb .bar{display:flex;align-items:center;gap:.8rem;padding:.7rem 1rem;color:#9aa0a6;font-size:.8rem}
+  #lb .bar button{background:#1e2227;color:#e8eaed;border:0;border-radius:.45rem;
+                  padding:.4rem .75rem;font:inherit;cursor:pointer}
+  #lb .stage{flex:1;display:grid;place-items:center;overflow:hidden}
+  #lb img{max-width:100%;max-height:100%;object-fit:contain}
+  #lb .meta{padding:.6rem 1rem 1.4rem;color:#9aa0a6;font-size:.75rem;text-align:center}
+  .stamp{padding:0 1rem 1.4rem;color:var(--muted);font-size:.68rem;text-align:center}
+</style>
+</head>
+<body>
+<p class="note"><strong>This is Lumen's LAN gallery</strong> — the page your phone opens
+when it browses your library over Wi-Fi. Sample data. The desktop and Android app is native.</p>
+
+<header>
+  <span class="dot"></span>
+  <h1>Lumen</h1>
+  <span class="count" id="count"></span>
+  <button class="icon" type="button" id="theme-toggle" aria-pressed="true">Light</button>
+  <style>
+  .support-open{font:inherit;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;
+                background:transparent;color:inherit;border:1px solid currentColor;border-radius:.4rem;
+                padding:.3rem .6rem;cursor:pointer;opacity:.75}
+  .support-open:hover,.support-open:focus-visible{opacity:1}
+  /* The dialog takes the app's theme, always: it reads the host page's variables and
+     falls back to the system Canvas/CanvasText pair, which follow color-scheme. It
+     never sets a palette of its own — that is how a support panel ends up light inside
+     a dark app. */
+  .support-dialog{border:1px solid var(--line,CanvasText);border-radius:.9rem;padding:0 1.2rem 1.2rem;
+                  max-width:46rem;width:calc(100% - 2rem);color-scheme:inherit;
+                  background:var(--paper,Canvas);color:var(--ink,CanvasText)}
+  .support-dialog::backdrop{background:rgba(0,0,0,.45)}
+  .support-dialog .support{border-top:0}
+  .support-close{position:sticky;top:0;float:right;margin:.6rem 0 0;font:inherit;font-size:1.1rem;
+                 line-height:1;background:transparent;border:1px solid var(--line,CanvasText);
+                 border-radius:.4rem;padding:.2rem .5rem;cursor:pointer;color:inherit}
+</style>
+<button class="support-open" type="button" id="support-open"
+        aria-haspopup="dialog" aria-controls="support-dialog">Support</button>
+<dialog class="support-dialog" id="support-dialog" aria-label="Support this work">
+  <button class="support-close" type="button" id="support-close" aria-label="Close">×</button>
+  <style>
+  /* Scoped to .support. Uses the host page's variables when they exist. */
+  .support{--s-ink:var(--ink,#14110e);--s-paper:var(--paper,#f7f2e9);--s-card:var(--paper-2,#fffdf8);
+           --s-muted:var(--muted,#6b6157);--s-line:var(--line,#e2d8c8);--s-accent:var(--accent,#2f6f8f);
+           font-family:var(--sans,ui-sans-serif,-apple-system,"Segoe UI",sans-serif);
+           color:var(--s-ink);padding:2.6rem 0 1rem;border-top:1px solid var(--s-line)}
+  .support-head{display:flex;gap:1rem;align-items:flex-start;margin:0 0 1.4rem}
+  .support-portrait{width:72px;height:72px;flex:0 0 72px;border-radius:50%;object-fit:cover;
+                    border:1px solid var(--s-line);background:var(--s-card)}
+  .support h2{font-size:1.15rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 .5rem;color:var(--s-muted)}
+  .support .support-lede{margin:0;max-width:44rem;color:var(--s-muted);font-size:.95rem}
+  .support-grid{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));align-items:stretch}
+  .support-card{background:var(--s-card);border:1px solid var(--s-line);border-radius:.7rem;padding:.9rem 1rem;
+                display:flex;flex-direction:column;gap:.35rem}
+  .support-card h3{margin:0;font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--s-muted);font-weight:600}
+  .support-card p{margin:0;font-size:.92rem;line-height:1.5}
+  .support-card a{color:var(--s-accent);text-decoration:none;border-bottom:1px solid transparent;word-break:break-word}
+  .support-card a:hover,.support-card a:focus-visible{border-bottom-color:currentColor}
+  .support-id{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .support-id code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.95rem;
+                   background:transparent;border:1px dashed var(--s-line);border-radius:.35rem;padding:.15rem .45rem}
+  .support-copy{font:inherit;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;
+                background:transparent;color:var(--s-muted);border:1px solid var(--s-line);
+                border-radius:.35rem;padding:.2rem .5rem;cursor:pointer}
+  .support-copy:hover,.support-copy:focus-visible{color:var(--s-ink);border-color:var(--s-ink)}
+  .support-card.upi{grid-row:span 1}
+  .support-qr{display:flex;gap:.9rem;align-items:center;flex-wrap:wrap;margin-top:.2rem}
+  /* the white tile is load-bearing: a dark-mode QR does not scan */
+  .support-qr img{width:132px;height:132px;display:block;background:#fff;padding:.35rem;
+                  border:1px solid var(--s-line);border-radius:.4rem;image-rendering:pixelated}
+  .support-qr small{display:block;color:var(--s-muted);font-size:.8rem;max-width:11rem;line-height:1.4}
+  .support-foot{margin:1.2rem 0 0;font-size:.8rem;color:var(--s-muted)}
+  @media (prefers-reduced-motion:no-preference){.support-card{transition:border-color .15s ease}}
+  .support-card:target,.support-card:focus-within{border-color:var(--s-accent)}
+</style>
+
+<section class="support" id="support" aria-labelledby="support-h" data-support>
+  <div class="support-head">
+    <img class="support-portrait" src="../assets/support-portrait.jpg" width="72" height="72"
+         alt="Dr. Sohil Momin" loading="lazy" decoding="async">
+    <div>
+      <h2 id="support-h">Support this work</h2>
+      <p class="support-lede">Everything here is free, offline and accountless. If it earned its keep,
+        there are a few ways to say so — pick whichever is easiest where you are.</p>
+    </div>
+  </div>
+  <div class="support-grid">
+
+    <div class="support-card upi">
+      <h3>UPI · India</h3>
+      <div class="support-id">
+        <code id="upi-vpa">drsohilboi@ybl</code>
+        <button class="support-copy" type="button" data-copy="drsohilboi@ybl"
+                aria-label="Copy the UPI ID drsohilboi@ybl">Copy</button>
+      </div>
+      <p><a href="upi://pay?pa=drsohilboi%40ybl&amp;pn=Dr.%20Sohil%20Momin&amp;cu=INR">Open in a UPI app →</a></p>
+      <div class="support-qr">
+        <img src="../assets/upi-qr.svg" width="132" height="132"
+             alt="QR code for the UPI ID drsohilboi@ybl, payee Dr. Sohil Momin">
+        <small>Scan with any UPI app. Payee: Dr. Sohil Momin.</small>
+      </div>
+    </div>
+
+    <div class="support-card">
+      <h3>Ko-fi</h3>
+      <p>One-off tip, no account needed.<br>
+        <a href="https://ko-fi.com/matneo" target="_blank" rel="noopener noreferrer">ko-fi.com/matneo →</a></p>
+    </div>
+
+    <div class="support-card">
+      <h3>PayPal</h3>
+      <p>For outside India, or a card instead of UPI.<br>
+        <a href="https://paypal.me/drsohilmomin?locale.x=en_GB&amp;country.x=IN"
+           target="_blank" rel="noopener noreferrer">paypal.me/drsohilmomin →</a></p>
+    </div>
+
+    <div class="support-card">
+      <h3>My books</h3>
+      <p>The Amazon author store — every title, one shelf.<br>
+        <a href="https://www.amazon.com/stores/author/B08ZT331LY/allbooks?ccs_id=aed72b9f-71d9-41dc-adee-e9368a317acc"
+           target="_blank" rel="noopener noreferrer">Amazon bookstore →</a></p>
+    </div>
+
+    <div class="support-card">
+      <h3>More apps</h3>
+      <p>The rest of the estate, all of it offline-first.<br>
+        <a href="https://drsamonline.github.io/" target="_blank" rel="noopener noreferrer">drsamonline.github.io →</a></p>
+    </div>
+
+    <div class="support-card">
+      <h3>Say hello</h3>
+      <p>Bugs, corrections, requests.<br>
+        <a href="mailto:sohilmomin2000@gmail.com">sohilmomin2000@gmail.com →</a></p>
+    </div>
+
+  </div>
+  <p class="support-foot">No accounts, no tracking, nothing on this page loads from the network.
+    A thank-you is a thank-you; nothing is gated behind it.</p>
+</section>
+
+<script>
+  /* Copy buttons degrade to "select the text yourself" — never a dead button. */
+  (function () {
+    document.querySelectorAll('.support [data-copy]').forEach(function (btn) {
+      if (btn.dataset.copyWired) return;
+      btn.dataset.copyWired = '1';
+      btn.addEventListener('click', function () {
+        var value = btn.getAttribute('data-copy');
+        var label = btn.textContent;
+        function done() {
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = label; }, 1500);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(value).then(done, function () {});
+          return;
+        }
+        var t = document.createElement('textarea');
+        t.value = value; t.setAttribute('readonly', ''); t.style.position = 'absolute';
+        t.style.left = '-9999px'; document.body.appendChild(t); t.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        t.remove();
+      });
+    });
+  })();
+</script>
+</dialog>
+<script>
+  (function () {
+    var open = document.getElementById('support-open');
+    var dlg = document.getElementById('support-dialog');
+    if (!open || !dlg) return;
+    open.addEventListener('click', function () {
+      if (typeof dlg.showModal === 'function') { dlg.showModal(); }
+      else { dlg.setAttribute('open', ''); }  /* no <dialog> support: still readable */
+    });
+    var close = document.getElementById('support-close');
+    if (close) close.addEventListener('click', function () { dlg.close ? dlg.close() : dlg.removeAttribute('open'); });
+    dlg.addEventListener('click', function (e) { if (e.target === dlg && dlg.close) dlg.close(); });
+  })();
+</script>
+</header>
+
+<div class="grid" id="grid"></div>
+
+<section class="dupes" id="dupes">
+  <h2>Possible duplicates</h2>
+  <div class="row" id="dupe-row"></div>
+</section>
+
+<p class="stamp">Served by Lumen · no internet at any point</p>
+
+<div id="lb" role="dialog" aria-modal="true" aria-label="Photo">
+  <div class="bar"><button type="button" id="lb-close">Close</button><span id="lb-name"></span></div>
+  <div class="stage"><img id="lb-img" alt=""></div>
+  <div class="meta" id="lb-meta"></div>
+</div>
+
+<script>
+const PHOTOS = [
+{
+"id": 1,
+"name": "IMG_1200.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-01-11",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232b5d63%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%238fc7bd%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EHarbour%2C%2006%3A12%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": true,
+"dupe": false
+},
+{
+"id": 2,
+"name": "IMG_1201.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-02-12",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%233a2f5b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23b98fc7%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EDusk%2C%20terrace%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": false,
+"dupe": false
+},
+{
+"id": 3,
+"name": "IMG_1202.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-03-13",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%236b4a2f%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23d9a566%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EKitchen%20window%3C/text%3E%3C/svg%3E",
+"edited": true,
+"favorite": false,
+"dupe": false
+},
+{
+"id": 4,
+"name": "IMG_1203.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-04-14",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%231f3b4d%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%236fa8c4%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3ERain%20on%20glass%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": false,
+"dupe": true
+},
+{
+"id": 5,
+"name": "IMG_1204.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-05-15",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%234d2b2b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23c98a6f%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EBrick%20and%20sun%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": true,
+"dupe": false
+},
+{
+"id": 6,
+"name": "IMG_1205.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-06-16",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232f4a2b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%239dc47f%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EGarden%2C%20July%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": false,
+"dupe": false
+},
+{
+"id": 7,
+"name": "IMG_1206.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-07-17",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23513a1f%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23c4a06f%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EOld%20road%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": false,
+"dupe": false
+},
+{
+"id": 8,
+"name": "IMG_1207.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-08-18",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%2325303f%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%238fa2b9%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EBlue%20hour%3C/text%3E%3C/svg%3E",
+"edited": true,
+"favorite": false,
+"dupe": false
+},
+{
+"id": 9,
+"name": "IMG_1208.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-09-11",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%235b2b45%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23c78fa8%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EMarket%20flowers%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": false,
+"dupe": false
+},
+{
+"id": 10,
+"name": "IMG_1209.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-10-12",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232b4a45%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%237fc4b4%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3ECoast%20path%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": true,
+"dupe": false
+},
+{
+"id": 11,
+"name": "IMG_1210.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-11-13",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%233f3a2b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23b9b07f%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EDry%20field%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": false,
+"dupe": false
+},
+{
+"id": 12,
+"name": "IMG_1211.jpg",
+"w": 4000,
+"h": 3000,
+"camera": "X-T5",
+"taken": "2024-12-14",
+"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232b2b3f%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%238f8fb9%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3ENight%20bus%3C/text%3E%3C/svg%3E",
+"edited": false,
+"favorite": false,
+"dupe": true
+}
+];
+
+const grid = document.getElementById('grid');
+const dupeRow = document.getElementById('dupe-row');
+const countEl = document.getElementById('count');
+
+function openLb(p){
+  document.getElementById('lb-img').src = p.thumb;
+  document.getElementById('lb-img').alt = p.name;
+  document.getElementById('lb-name').textContent = p.name;
+  document.getElementById('lb-meta').textContent =
+    p.camera + '  ·  ' + p.taken + '  ·  ' + p.w + ' x ' + p.h + (p.edited ? '  ·  edited' : '');
+  document.getElementById('lb').classList.add('on');
+}
+document.getElementById('lb-close').addEventListener('click', () => {
+  document.getElementById('lb').classList.remove('on');
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('lb-close').click(); });
+
+PHOTOS.forEach(p => {
+  const tile = document.createElement('div');
+  tile.className = 'tile';
+  const img = document.createElement('img');
+  img.src = p.thumb; img.alt = p.name; img.loading = 'lazy';
+  tile.appendChild(img);
+  if (p.favorite){ const s=document.createElement('span'); s.className='fav'; s.textContent='\u2605'; tile.appendChild(s); }
+  if (p.edited){ const b=document.createElement('span'); b.className='badge'; b.textContent='edited'; tile.appendChild(b); }
+  tile.addEventListener('click', () => openLb(p));
+  grid.appendChild(tile);
+});
+PHOTOS.filter(p => p.dupe).forEach(p => {
+  const img = document.createElement('img');
+  img.src = p.thumb; img.alt = p.name;
+  dupeRow.appendChild(img);
+});
+countEl.textContent = PHOTOS.length + ' photos';
+
+/* hash routes, so the landing page can drive this frame */
+function route(){
+  const h = location.hash.replace('#/','');
+  const target = h === 'duplicates' ? document.getElementById('dupes')
+               : h === 'viewer' ? document.getElementById('grid')
+               : document.getElementById('grid');
+  if (h === 'viewer') openLb(PHOTOS[0]);
+  else document.getElementById('lb').classList.remove('on');
+  if (target) target.scrollIntoView({behavior:'smooth', block:'start'});
+}
+window.addEventListener('hashchange', route);
+route();
+
+/* theme: page-scoped key so this frame and the landing page never fight */
+const root = document.documentElement;
+const toggle = document.getElementById('theme-toggle');
+const saved = localStorage.getItem('theme:lumen-play');
+if (saved) root.setAttribute('data-theme', saved);
+function paintToggle(){
+  const dark = root.getAttribute('data-theme') !== 'light';
+  toggle.textContent = dark ? 'Light' : 'Dark';
+  toggle.setAttribute('aria-pressed', String(dark));
+}
+paintToggle();
+toggle.addEventListener('click', () => {
+  const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  root.setAttribute('data-theme', next);
+  localStorage.setItem('theme:lumen-play', next);
+  paintToggle();
+});
+</script>
+</body>
+</html>

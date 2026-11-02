@@ -1,18 +1,26 @@
 # Lumen
 
-[![test](https://github.com/drsamonline/lumen/actions/workflows/test.yml/badge.svg)](https://github.com/drsamonline/lumen/actions/workflows/test.yml)
-[![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial%201.0.0-f0b429?style=flat-square)](LICENSE)
-[![network](https://img.shields.io/badge/network-none-5fbf8a?style=flat-square)](#offline-enforced)
-[![runtime deps](https://img.shields.io/badge/runtime%20deps-none%20beyond%20the%20Flutter%20SDK-5fbf8a?style=flat-square)](#building-it)
+[![tests](docs/assets/badge-tests.svg)](https://github.com/drsamonline/lumen/actions/workflows/test.yml)
+[![licence](docs/assets/badge-licence.svg)](LICENSE)
+[![offline](docs/assets/badge-offline.svg)](#offline-enforced)
+[![build](docs/assets/badge-build.svg)](#building-it)
 
-A photo library that lives entirely on your machine. Offline, fast, and built to
-do the one thing Picasa did better than anything since: show you your own photos,
-instantly, without asking you to sign in to anything.
+**A photo library that never phones home.**
 
-One Flutter codebase, three real native builds: **Windows, Linux, Android**.
-All three are compiled on every push. macOS and iOS are deliberately out of
-scope — building either needs a macOS machine, and this project has no budget
-for one, so they are excluded rather than left half-supported.
+An offline library in the spirit of Picasa. Point it at the folders you already
+keep your photos in; it reads them, indexes them, and computes everything else —
+thumbnails, edits, faces, albums, duplicates — on your machine.
+
+[Live demo](https://drsamonline.github.io/lumen/) ·
+[Landing page](https://drsamonline.github.io/lumen/) ·
+[The rule](#offline-enforced) ·
+[Support](#support)
+
+<!-- shot:start -->
+
+![Lumen's LAN gallery: a grid of photos with star ratings, edited badges and a possible-duplicates strip](docs/shot.png)
+
+<!-- shot:end -->
 
 ---
 
@@ -232,7 +240,7 @@ Your photos are never copied, moved or modified.
   in the app's viewer, but a browser on the network sees the unedited file at
   full size. Serving a rendered copy would mean a decode per request; it is on
   the roadmap rather than half-done.
-- **macOS and iOS are not supported**, permanently. See `ROADMAP.md`.
+- **Apple platforms are not supported**, permanently. See `ROADMAP.md`.
 
 ## Honest status
 
@@ -255,3 +263,20 @@ missing, and why, is in `ROADMAP.md`. The two you will notice first:
    dependency-free and crash-safe, and it works on Windows and Linux. On
    Android there is no shell, so those formats stay unavailable there until an
    FFI plugin is added — the interface is already shaped for one.
+
+## Support
+
+Lumen is free, offline, and has no business model. If it is useful to you:
+
+| | |
+|---|---|
+| UPI (India) | `drsohilboi@ybl` — payee Dr. Sohil Momin |
+| Ko-fi | <https://ko-fi.com/matneo> |
+| PayPal | <https://paypal.me/drsohilmomin?locale.x=en_GB&country.x=IN> |
+| Books | <https://www.amazon.com/stores/author/B08ZT331LY/allbooks?ccs_id=aed72b9f-71d9-41dc-adee-e9368a317acc> |
+| Everything else | <https://drsamonline.github.io/> |
+| Email | <sohilmomin2000@gmail.com> |
+
+The [landing page](https://drsamonline.github.io/lumen/) carries the same handles
+with a scannable UPI QR, and the app has a Support button that opens the same
+block in the app's own theme. Nothing is gated behind it.

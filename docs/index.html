@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f7f2e9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14110e" media="(prefers-color-scheme: dark)">
+<title>Lumen — a photo library that never phones home</title>
+<meta name="description" content="An offline photo library in the spirit of Picasa. Indexes the folders you point it at and computes everything else on your machine.">
+<link rel="canonical" href="https://drsamonline.github.io/lumen/">
+<meta property="og:site_name" content="Lumen">
+<meta property="og:title" content="Lumen — a photo library that never phones home">
+<meta property="og:description" content="An offline photo library in the spirit of Picasa. Windows, Linux and Android from one codebase.">
+<meta property="og:url" content="https://drsamonline.github.io/lumen/">
+<meta property="og:image" content="https://drsamonline.github.io/lumen/assets/app-desktop.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://drsamonline.github.io/lumen/assets/app-desktop.png">
+<script>
+  (function(){
+    try {
+      var saved = localStorage.getItem('theme:lumen');
+      if (saved) document.documentElement.setAttribute('data-theme', saved);
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root{
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,ui-serif,Georgia,serif;
+    --sans:ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --ink:#14110e; --paper:#f7f2e9; --paper-2:#fffdf8; --muted:#6b6157; --line:#e2d8c8;
+    --accent:#8a5a1e; --accent-2:#2f6f6b; --frame:#efe7d8;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#f2ece1; --paper:#14110e; --paper-2:#1d1915; --muted:#a79b8b; --line:#332c25;
+      --accent:#d9a566; --accent-2:#7fd1c8; --frame:#0e0c0a;
+    }
+  }
+  html[data-theme="dark"]{
+    --ink:#f2ece1; --paper:#14110e; --paper-2:#1d1915; --muted:#a79b8b; --line:#332c25;
+    --accent:#d9a566; --accent-2:#7fd1c8; --frame:#0e0c0a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.65 var(--serif)}
+  a{color:var(--accent-2)}
+  .band{height:6px;background:linear-gradient(90deg,var(--accent),var(--paper) 50%,var(--accent-2))}
+  .wrap{max-width:56rem;margin:0 auto;padding:0 1.4rem}
+  .topbar{display:flex;align-items:center;gap:1rem;padding:1rem 1.4rem;font-family:var(--sans);font-size:.85rem}
+  .topbar a{color:var(--muted);text-decoration:none}
+  .topbar a:hover,.topbar a:focus-visible{color:var(--ink)}
+  .theme{margin-left:auto;font:inherit;background:transparent;color:var(--muted);
+         border:1px solid var(--line);border-radius:.4rem;padding:.3rem .7rem;cursor:pointer}
+  .theme:hover,.theme:focus-visible{color:var(--ink);border-color:var(--ink)}
+  header{padding:3rem 0 1rem}
+  .eyebrow{font-family:var(--sans);font-size:.72rem;letter-spacing:.18em;text-transform:uppercase;
+           color:var(--accent);margin:0 0 1rem}
+  h1{font-size:clamp(2.4rem,6vw,4rem);line-height:1.02;margin:0 0 1.2rem;letter-spacing:-.02em}
+  h1 span{display:block;font-weight:400;font-style:italic;color:var(--muted);font-size:.44em;letter-spacing:0}
+  .lede{font-size:1.16rem;max-width:38rem;margin:0 0 1.6rem}
+  .badges{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1.6rem}
+  .badges img{height:20px}
+  .ctas{display:flex;flex-wrap:wrap;gap:.7rem;font-family:var(--sans);font-size:.92rem}
+  .btn{display:inline-block;padding:.6rem 1.1rem;border-radius:.5rem;text-decoration:none;
+       border:1px solid var(--line);background:var(--paper-2);color:var(--ink)}
+  .btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .btn:hover,.btn:focus-visible{border-color:var(--accent)}
+  figure.shot{margin:2.4rem 0 0;border:1px solid var(--line);border-radius:.9rem;
+              overflow:hidden;background:var(--paper-2)}
+  figure.shot img{display:block;width:100%;height:auto}
+  figcaption{font-family:var(--sans);font-size:.82rem;color:var(--muted);padding:.7rem 1rem;
+             border-top:1px solid var(--line)}
+  main section{padding:3.4rem 0}
+  main section + section{border-top:1px solid var(--line)}
+  h2{font-size:1.5rem;margin:0 0 1rem;letter-spacing:-.01em}
+  .cards{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+  .card{background:var(--paper-2);border:1px solid var(--line);border-radius:.8rem;padding:1.1rem}
+  .card h3{margin:0 0 .4rem;font-size:1.02rem}
+  .card p{margin:0;color:var(--muted);font-size:.95rem}
+  .guided{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1rem}
+  .guided button{font-family:var(--sans);font-size:.82rem;background:var(--paper-2);
+                 color:var(--ink);border:1px solid var(--line);border-radius:2rem;
+                 padding:.4rem .95rem;cursor:pointer}
+  .guided button:hover,.guided button:focus-visible{border-color:var(--accent);color:var(--accent)}
+  .frame{position:relative;border:1px solid var(--line);border-radius:.8rem;overflow:hidden;
+         background:var(--frame);height:min(34rem, 58vw)}
+  .frame .poster{position:absolute;inset:0;width:100%;height:100%;
+                 object-fit:cover;object-position:top}
+  .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--paper)}
+  .frame.live .poster{visibility:hidden}
+  ul.plain{margin:0;padding-left:1.2rem;color:var(--muted)}
+  ul.plain li{margin:.35rem 0}
+  pre{background:var(--paper-2);border:1px solid var(--line);border-radius:.6rem;
+      padding:.9rem 1rem;overflow:auto;font-family:var(--mono);font-size:.82rem;color:var(--ink)}
+  footer{padding:2.4rem 0 4rem;color:var(--muted);font-size:.9rem;font-family:var(--sans)}
+  footer a{color:var(--muted)}
+  .platforms{margin:0 0 .5rem;font-size:.82rem}
+  .stamp{margin-top:1.6rem;font-size:.74rem;font-family:var(--mono);color:var(--muted);opacity:.8}
+</style>
+</head>
+<body>
+<div class="band"></div>
+
+<div class="topbar">
+  <a href="https://drsamonline.github.io/">&#8592; the estate</a>
+  <button class="theme" type="button" id="theme-toggle" aria-pressed="false">Dark</button>
+</div>
+
+<header><div class="wrap">
+  <p class="eyebrow">Offline photo library</p>
+  <h1>Lumen<span>your photos, on your disk, on your terms</span></h1>
+  <p class="lede">An offline library in the spirit of Picasa. Point it at the folders you
+  already keep your photos in. It reads them, indexes them, and computes everything
+  else — thumbnails, edits, faces, albums, duplicates — on your machine. There is no
+  account, and there is no network call anywhere in the code.</p>
+  <div class="badges">
+    <img src="assets/badge-tests.svg" alt="tests: 98 passing">
+    <img src="assets/badge-licence.svg" alt="licence: PolyForm NC 1.0.0">
+    <img src="assets/badge-offline.svg" alt="network: none">
+    <img src="assets/badge-build.svg" alt="build: Windows, Linux and Android">
+  </div>
+  <div class="ctas">
+    <a class="btn primary" href="https://github.com/drsamonline/lumen">Get the app</a>
+    <a class="btn" href="https://github.com/drsamonline/lumen#readme">Read the source</a>
+    <a class="btn" href="#support">Support it</a>
+  </div>
+
+  <figure class="shot">
+    <img src="assets/app-desktop.png" alt="Lumen's LAN gallery: a grid of photos with star ratings, edited badges and a possible-duplicates strip">
+    <figcaption>Lumen's LAN gallery — the page any phone or TV on your Wi-Fi opens to
+    browse the library. The desktop and Android app is a native build; this is the one
+    surface of it that runs in a browser, and the demo below is the real thing.</figcaption>
+  </figure>
+</div></header>
+
+<main>
+  <section id="demo"><div class="wrap">
+    <h2>Try the gallery, right here</h2>
+    <p class="lede" style="font-size:1rem">This is not a mock-up. It is Lumen's LAN
+    gallery — the page your phone opens when it browses your library over your own
+    Wi-Fi. Sample data, real client.</p>
+    <div class="guided">
+      <button type="button" data-route="#/grid">The grid</button>
+      <button type="button" data-route="#/viewer">A single photo</button>
+      <button type="button" data-route="#/duplicates">Possible duplicates</button>
+    </div>
+    <div class="frame" id="frame">
+      <img class="poster" src="assets/app-desktop.png" alt="The LAN gallery: a grid of photos with a possible-duplicates strip below">
+      <iframe id="demo-frame" title="Lumen LAN gallery — live demo" loading="lazy"
+              src="play/#/grid"></iframe>
+    </div>
+  </div></section>
+
+  <section><div class="wrap">
+    <h2>What it does</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>01 · Index without copying</h3>
+        <p>Your photos stay where they are. Lumen keeps its own index beside the app
+        and never moves, renames or rewrites a file. Delete the index and your library
+        is untouched.</p>
+      </div>
+      <div class="card">
+        <h3>02 · Edit without destroying</h3>
+        <p>Crop, rotate, colour and tone curves are stored as a small recipe. The
+        original is opened read-only, always. Export writes a new file beside it.</p>
+      </div>
+      <div class="card">
+        <h3>03 · Browse without a browser tab</h3>
+        <p>Turn on the LAN gallery and any phone or TV on your Wi-Fi can browse the
+        whole library. It works with the router's WAN port unplugged.</p>
+      </div>
+    </div>
+  </div></section>
+
+  <section><div class="wrap">
+    <h2>What it refuses to do</h2>
+    <ul class="plain">
+      <li>Upload a photo, or contact a server. <code>test/offline_guard_test.dart</code>
+      fails the build if anyone adds an outbound network client.</li>
+      <li>Delete a photo. Duplicate detection groups and ranks; removing the extras
+      stays a manual act.</li>
+      <li>Ship an Apple build. Compiling one needs a Mac, and this project will
+      not carry that cost.</li>
+    </ul>
+  </div></section>
+
+  <section><div class="wrap">
+    <h2>How to run it</h2>
+    <p class="lede" style="font-size:1rem">You need the Flutter SDK, 3.27 or newer.</p>
+    <pre>git clone https://github.com/drsamonline/lumen
+cd lumen
+flutter create --platforms=android,windows,linux .
+flutter pub get
+flutter run -d windows      # or: linux, or an Android device</pre>
+  </div></section>
+</main>
+
+<footer><div class="wrap">
+  <style>
+  /* Scoped to .support. Uses the host page's variables when they exist. */
+  .support{--s-ink:var(--ink,#14110e);--s-paper:var(--paper,#f7f2e9);--s-card:var(--paper-2,#fffdf8);
+           --s-muted:var(--muted,#6b6157);--s-line:var(--line,#e2d8c8);--s-accent:var(--accent,#2f6f8f);
+           font-family:var(--sans,ui-sans-serif,-apple-system,"Segoe UI",sans-serif);
+           color:var(--s-ink);padding:2.6rem 0 1rem;border-top:1px solid var(--s-line)}
+  .support-head{display:flex;gap:1rem;align-items:flex-start;margin:0 0 1.4rem}
+  .support-portrait{width:72px;height:72px;flex:0 0 72px;border-radius:50%;object-fit:cover;
+                    border:1px solid var(--s-line);background:var(--s-card)}
+  .support h2{font-size:1.15rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 .5rem;color:var(--s-muted)}
+  .support .support-lede{margin:0;max-width:44rem;color:var(--s-muted);font-size:.95rem}
+  .support-grid{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));align-items:stretch}
+  .support-card{background:var(--s-card);border:1px solid var(--s-line);border-radius:.7rem;padding:.9rem 1rem;
+                display:flex;flex-direction:column;gap:.35rem}
+  .support-card h3{margin:0;font-size:.78rem;letter-spacing:.09em;text-transform:uppercase;color:var(--s-muted);font-weight:600}
+  .support-card p{margin:0;font-size:.92rem;line-height:1.5}
+  .support-card a{color:var(--s-accent);text-decoration:none;border-bottom:1px solid transparent;word-break:break-word}
+  .support-card a:hover,.support-card a:focus-visible{border-bottom-color:currentColor}
+  .support-id{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+  .support-id code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.95rem;
+                   background:transparent;border:1px dashed var(--s-line);border-radius:.35rem;padding:.15rem .45rem}
+  .support-copy{font:inherit;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;
+                background:transparent;color:var(--s-muted);border:1px solid var(--s-line);
+                border-radius:.35rem;padding:.2rem .5rem;cursor:pointer}
+  .support-copy:hover,.support-copy:focus-visible{color:var(--s-ink);border-color:var(--s-ink)}
+  .support-card.upi{grid-row:span 1}
+  .support-qr{display:flex;gap:.9rem;align-items:center;flex-wrap:wrap;margin-top:.2rem}
+  /* the white tile is load-bearing: a dark-mode QR does not scan */
+  .support-qr img{width:132px;height:132px;display:block;background:#fff;padding:.35rem;
+                  border:1px solid var(--s-line);border-radius:.4rem;image-rendering:pixelated}
+  .support-qr small{display:block;color:var(--s-muted);font-size:.8rem;max-width:11rem;line-height:1.4}
+  .support-foot{margin:1.2rem 0 0;font-size:.8rem;color:var(--s-muted)}
+  @media (prefers-reduced-motion:no-preference){.support-card{transition:border-color .15s ease}}
+  .support-card:target,.support-card:focus-within{border-color:var(--s-accent)}
+</style>
+
+<section class="support" id="support" aria-labelledby="support-h" data-support>
+  <div class="support-head">
+    <img class="support-portrait" src="assets/support-portrait.jpg" width="72" height="72"
+         alt="Dr. Sohil Momin" loading="lazy" decoding="async">
+    <div>
+      <h2 id="support-h">Support this work</h2>
+      <p class="support-lede">Everything here is free, offline and accountless. If it earned its keep,
+        there are a few ways to say so — pick whichever is easiest where you are.</p>
+    </div>
+  </div>
+  <div class="support-grid">
+
+    <div class="support-card upi">
+      <h3>UPI · India</h3>
+      <div class="support-id">
+        <code id="upi-vpa">drsohilboi@ybl</code>
+        <button class="support-copy" type="button" data-copy="drsohilboi@ybl"
+                aria-label="Copy the UPI ID drsohilboi@ybl">Copy</button>
+      </div>
+      <p><a href="upi://pay?pa=drsohilboi%40ybl&amp;pn=Dr.%20Sohil%20Momin&amp;cu=INR">Open in a UPI app →</a></p>
+      <div class="support-qr">
+        <img src="assets/upi-qr.svg" width="132" height="132"
+             alt="QR code for the UPI ID drsohilboi@ybl, payee Dr. Sohil Momin">
+        <small>Scan with any UPI app. Payee: Dr. Sohil Momin.</small>
+      </div>
+    </div>
+
+    <div class="support-card">
+      <h3>Ko-fi</h3>
+      <p>One-off tip, no account needed.<br>
+        <a href="https://ko-fi.com/matneo" target="_blank" rel="noopener noreferrer">ko-fi.com/matneo →</a></p>
+    </div>
+
+    <div class="support-card">
+      <h3>PayPal</h3>
+      <p>For outside India, or a card instead of UPI.<br>
+        <a href="https://paypal.me/drsohilmomin?locale.x=en_GB&amp;country.x=IN"
+           target="_blank" rel="noopener noreferrer">paypal.me/drsohilmomin →</a></p>
+    </div>
+
+    <div class="support-card">
+      <h3>My books</h3>
+      <p>The Amazon author store — every title, one shelf.<br>
+        <a href="https://www.amazon.com/stores/author/B08ZT331LY/allbooks?ccs_id=aed72b9f-71d9-41dc-adee-e9368a317acc"
+           target="_blank" rel="noopener noreferrer">Amazon bookstore →</a></p>
+    </div>
+
+    <div class="support-card">
+      <h3>More apps</h3>
+      <p>The rest of the estate, all of it offline-first.<br>
+        <a href="https://drsamonline.github.io/" target="_blank" rel="noopener noreferrer">drsamonline.github.io →</a></p>
+    </div>
+
+    <div class="support-card">
+      <h3>Say hello</h3>
+      <p>Bugs, corrections, requests.<br>
+        <a href="mailto:sohilmomin2000@gmail.com">sohilmomin2000@gmail.com →</a></p>
+    </div>
+
+  </div>
+  <p class="support-foot">No accounts, no tracking, nothing on this page loads from the network.
+    A thank-you is a thank-you; nothing is gated behind it.</p>
+</section>
+
+<script>
+  /* Copy buttons degrade to "select the text yourself" — never a dead button. */
+  (function () {
+    document.querySelectorAll('.support [data-copy]').forEach(function (btn) {
+      if (btn.dataset.copyWired) return;
+      btn.dataset.copyWired = '1';
+      btn.addEventListener('click', function () {
+        var value = btn.getAttribute('data-copy');
+        var label = btn.textContent;
+        function done() {
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = label; }, 1500);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(value).then(done, function () {});
+          return;
+        }
+        var t = document.createElement('textarea');
+        t.value = value; t.setAttribute('readonly', ''); t.style.position = 'absolute';
+        t.style.left = '-9999px'; document.body.appendChild(t); t.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        t.remove();
+      });
+    });
+  })();
+</script>
+  <p class="platforms">Windows · Linux · Android. Nothing Apple, by design.</p>
+  <p><a href="https://github.com/drsamonline/lumen">Source</a> ·
+     <a href="https://github.com/drsamonline/lumen/blob/main/LICENSE">Licence</a> ·
+     <a href="https://drsamonline.github.io/">The estate</a></p>
+  <p class="stamp" id="build-stamp">built 2026-11-02 · main</p>
+</div></footer>
+
+<script>
+  (function(){
+    var root = document.documentElement;
+    var toggle = document.getElementById('theme-toggle');
+    function current(){
+      var explicit = root.getAttribute('data-theme');
+      if (explicit) return explicit;
+      return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    function paint(){
+      var dark = current() === 'dark';
+      toggle.textContent = dark ? 'Light' : 'Dark';
+      toggle.setAttribute('aria-pressed', String(dark));
+    }
+    paint();
+    toggle.addEventListener('click', function(){
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('theme:lumen', next); } catch (e) {}
+      paint();
+    });
+  })();
+
+  /* The demo frame: reveal only once it has loaded, so a blocked frame still
+     shows the poster instead of a broken box. */
+  (function(){
+    var frame = document.getElementById('frame');
+    var iframe = document.getElementById('demo-frame');
+    if (!frame || !iframe) return;
+    var loaded = false;
+    iframe.addEventListener('load', function(){
+      loaded = true;
+      frame.classList.add('live');
+    });
+    document.querySelectorAll('.guided button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var route = btn.getAttribute('data-route') || '#/grid';
+        if (loaded) iframe.contentWindow.location.hash = route;
+      });
+    });
+  })();
+</script>
+</body>
+</html>

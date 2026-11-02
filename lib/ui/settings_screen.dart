@@ -9,6 +9,7 @@ import '../core/formats/format_registry.dart';
 import '../core/formats/image_format.dart';
 import '../core/lan/lan_server.dart';
 import '../state/providers.dart';
+import 'support_dialog.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -243,6 +244,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ],
               );
             },
+          ),
+
+          const _SectionHeader('Support'),
+          ListTile(
+            leading: const Icon(Icons.favorite_border),
+            title: const Text('Support this work'),
+            subtitle: const Text(
+              'Lumen is free and offline with no business model. Six ways to say '
+              'thank you, none of them required.',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => SupportDialog.show(context),
           ),
 
           const _SectionHeader('About'),

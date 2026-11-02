@@ -1,0 +1,45 @@
+# Presentation gate — run the repo's own checklist on every push.
+#
+# Copy this to .github/workflows/presentation.yml. It does one thing: runs
+# tools/verify.py, so a landing page that loses its support block, a badge that
+# stops being true, or a screenshot that goes missing fails the build instead of
+# being found months later.
+#
+# It is deliberately ubuntu-only: this estate ships Windows, Linux and Android
+# builds, and a macOS runner is a build target we do not have.
+#
+# Prerequisites, once per repo: copy the skill's scripts/ into tools/ and
+# assets/{support-block.html,support-portrait.b64} into tools/assets/, then
+# commit docs/assets/upi-qr.svg and docs/assets/support-portrait.jpg so this job
+# never needs to generate them.
+
+name: presentation
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build-time dependencies
+        run: pip install --quiet segno
+
+      - name: Check the presentation surfaces
+        run: python3 tools/verify.py . --audit
+
+      - name: Print the links this build can be checked at
+        if: always()
+        run: python3 tools/links.py .
