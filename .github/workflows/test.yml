@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Flutter's Linux target needs a GTK toolchain and ninja; the runner has
       # none of it by default.
