@@ -1,5 +1,10 @@
 # Lumen
 
+[![test](https://github.com/drsamonline/lumen/actions/workflows/test.yml/badge.svg)](https://github.com/drsamonline/lumen/actions/workflows/test.yml)
+[![licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial%201.0.0-f0b429?style=flat-square)](LICENSE)
+[![network](https://img.shields.io/badge/network-none-5fbf8a?style=flat-square)](#offline-enforced)
+[![runtime deps](https://img.shields.io/badge/runtime%20deps-none%20beyond%20the%20Flutter%20SDK-5fbf8a?style=flat-square)](#building-it)
+
 A photo library that lives entirely on your machine. Offline, fast, and built to
 do the one thing Picasa did better than anything since: show you your own photos,
 instantly, without asking you to sign in to anything.
@@ -171,6 +176,10 @@ On first run, tap **Use camera roll** on the setup screen; it adds
 ---
 
 ## Tests
+
+CI runs these on every push (`.github/workflows/test.yml`): `flutter analyze`
+then `flutter test`, followed by a Linux desktop compile that proves the native
+plugins link. Locally:
 
 ```bash
 flutter test

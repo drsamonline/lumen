@@ -1,0 +1,92 @@
+name: test
+
+# Lumen is verified here rather than on the author's machine: GitHub has the
+# Flutter SDK, so `flutter analyze` and `flutter test` run on every push and
+# the result is a real compiler verdict, not a static reading of the source.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned deliberately. Bump this one line for a newer toolchain; the pubspec
+  # floor is Dart 3.6 / Flutter 3.27.
+  FLUTTER_VERSION: 3.27.4
+
+jobs:
+  analyze-and-test:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Report toolchain versions
+        run: flutter --version
+
+      # No `flutter create` here on purpose: analysis and unit tests are pure
+      # Dart and do not need platform scaffolding. Running it would also drop a
+      # generated test/widget_test.dart into the tree and fail the suite.
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Static analysis
+        run: flutter analyze --no-fatal-infos
+
+      - name: Unit tests
+        run: flutter test --reporter expanded
+
+  build-linux:
+    name: Build Linux desktop
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: analyze-and-test
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # Flutter's Linux target needs a GTK toolchain and ninja; the runner has
+      # none of it by default.
+      - name: Install desktop build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev \
+            libblkid-dev libsecret-1-dev libsqlite3-0
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Generate Linux platform folder
+        run: flutter create --platforms=linux --project-name lumen .
+
+      # Debug, not release: this job checks that the code compiles and the
+      # native plugins link, it is not producing something to ship.
+      - name: Compile
+        run: flutter build linux --debug

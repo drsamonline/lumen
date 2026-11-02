@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.2 — continuous integration
+
+- **`.github/workflows/test.yml`.** `flutter analyze` and `flutter test` on every
+  push and pull request, plus a Linux desktop debug build that proves the native
+  plugins link. Flutter is pinned to 3.27.4 in one place.
+- **`flutter analyze` is deliberately fatal on warnings**, so an unused import
+  or a dead field turns the badge red instead of accumulating quietly.
+- **No `flutter create` in the test job** — it would drop a generated
+  `test/widget_test.dart` into the tree and fail the suite for no reason.
+- **`.github/dependabot.yml`** for actions and pub packages, weekly.
+
 ## 1.4.1 — audit pass
 
 No new features. Nine defects found by reading the tree end to end, all fixed,
