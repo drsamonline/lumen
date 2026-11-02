@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:path/path.dart' as p;
 
 import '../db/database.dart';
 import '../db/photo_dao.dart';
 import '../models/photo.dart';
-import 'capture_date.dart';
-import 'exif_reader.dart';
+import 'scan_worker.dart';
 
 class ScanProgress {
   const ScanProgress({
@@ -80,6 +80,7 @@ class LibraryScanner {
 
     try {
       final batch = <PhotoCandidate>[];
+      final pending = <PendingFile>[];
       const batchSize = 150;
 
       // One read of the index, then every "have I seen this file?" question is a
@@ -127,40 +128,22 @@ class LibraryScanner {
             continue;
           }
 
-          final exif = await ExifReader.read(entity.path);
-          final takenAt = exif.takenAtMs ??
-              CaptureDate.fromFileName(entity.path) ??
-              stat.modified.millisecondsSinceEpoch;
-
-          batch.add(PhotoCandidate(
-            path: entity.path,
-            folder: entity.parent.path,
-            fileName: p.basename(entity.path),
-            ext: p.extension(entity.path).replaceFirst('.', '').toLowerCase(),
+          pending.add(PendingFile.of(
+            entity.path,
             sizeBytes: stat.size,
             modifiedMs: stat.modified.millisecondsSinceEpoch,
-            takenAtMs: takenAt,
-            width: exif.width,
-            height: exif.height,
-            cameraMake: exif.make,
-            cameraModel: exif.model,
-            iso: exif.iso,
-            fNumber: exif.fNumber,
-            exposureTime: exif.exposureTime,
-            focalLength: exif.focalLength,
-            lat: exif.lat,
-            lon: exif.lon,
-            orientation: exif.orientation,
           ));
-
-          scanned++;
           if (existing == null) {
             added++;
           } else {
             updated++;
           }
 
-          if (batch.length >= batchSize) {
+          if (pending.length >= batchSize) {
+            final read = await _readOffIsolate(pending);
+            pending.clear();
+            batch.addAll(read);
+            scanned += read.length;
             await flush();
             _emit(ScanProgress(
               scanned: scanned,
@@ -175,6 +158,13 @@ class LibraryScanner {
         }
       }
 
+      // Whatever the last partial batch left behind.
+      if (pending.isNotEmpty) {
+        final read = await _readOffIsolate(pending);
+        pending.clear();
+        batch.addAll(read);
+        scanned += read.length;
+      }
       await flush();
 
       // Anything the walk never touched is gone from disk. One statement.
@@ -206,6 +196,24 @@ class LibraryScanner {
 
   /// Re-index a single directory — used by the folder watcher.
   Future<ScanProgress> scanFolder(String folder) => scanRoots(<String>[folder]);
+
+  /// EXIF parsing for a batch, off the UI isolate.
+  ///
+  /// `Isolate.run` spawns, runs and tears down one isolate per batch — about a
+  /// millisecond, against the hundreds a batch of 150 EXIF reads costs. A
+  /// long-lived worker with a message protocol would save that millisecond and
+  /// add a state machine; this does not.
+  ///
+  /// Falls back to running inline if isolates are unavailable, so a scan still
+  /// completes on a platform that refuses them.
+  Future<List<PhotoCandidate>> _readOffIsolate(List<PendingFile> files) async {
+    final chunk = List<PendingFile>.from(files);
+    try {
+      return await Isolate.run(() => readCandidates(chunk));
+    } catch (_) {
+      return readCandidates(chunk);
+    }
+  }
 
   void _emit(ScanProgress p) {
     if (!_progress.isClosed) _progress.add(p);

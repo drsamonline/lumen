@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.6.8 - EXIF parsing moved off the UI isolate
+
+The last big performance item, done in the smallest shape that could work.
+
+- **What was blocking.** The walk, `stat` and directory listing are async I/O and
+  were never the problem. Reading up to 512 KB per file and parsing the TIFF
+  structure is pure CPU on the UI isolate, and that is what made a first scan of
+  a phone library stutter.
+- **The shape.** `Isolate.run` per batch of 150 files. It spawns, runs and tears
+  down one isolate per batch - about a millisecond against the hundreds a batch
+  of EXIF reads costs. A long-lived worker with a message protocol would save
+  that millisecond and add a state machine to maintain; this does not.
+- **Why not one isolate for the whole scan.** sqflite cannot cross an isolate
+  boundary, so the writing has to stay on the main isolate regardless. The split
+  is therefore exactly at the boundary the database already forces.
+- **Fallback.** If `Isolate.run` throws, the same function runs inline, so a
+  platform that refuses isolates still completes a scan.
+- New `scan_worker.dart` holds `PendingFile` and `readCandidates` — plain fields
+  and no database, so it is safe to send. Three tests cover it directly.
+
 ## 1.6.7 - face boxes, the Android folder picker, and a test that bites
 
 - **Face tags ignored rotation.** Boxes are stored in the image's own
