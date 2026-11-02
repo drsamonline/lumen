@@ -27,20 +27,20 @@ class AppDatabase {
     return d;
   }
 
-  Future<void> open({String? pathOverride, bool inMemory = false}) async {
+  Future<void> open({String? path, bool inMemory = false}) async {
     if (_db != null) return;
     // The path is passed in rather than resolved here. `path_provider` is a
     // Flutter plugin, and this file has to compile into the command-line tool,
     // where there is no engine to call it.
-    final path = inMemory ? inMemoryDatabasePath : pathOverride;
-    if (path == null) {
+    final target = inMemory ? inMemoryDatabasePath : path;
+    if (target == null) {
       throw ArgumentError(
         'AppDatabase.open needs a path (or inMemory: true).',
       );
     }
 
     _db = await databaseFactory.openDatabase(
-      path,
+      target,
       options: OpenDatabaseOptions(
         version: 2,
         onConfigure: (d) async {

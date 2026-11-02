@@ -96,7 +96,7 @@ Future<void> _scan(PhotoDao photos, RootsDao roots, _Args args) async {
     return;
   }
 
-  final scanner = LibraryScanner(photos, AppDatabase.instance);
+  final scanner = LibraryScanner(photos);
   final subscription = scanner.progress.listen((progress) {
     if (!progress.done && progress.current != null) {
       stdout.write('\r${progress.scanned}  ${progress.current}'.padRight(78));

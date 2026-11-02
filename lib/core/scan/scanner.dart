@@ -4,7 +4,6 @@ import 'dart:isolate';
 
 import 'package:path/path.dart' as p;
 
-import '../db/database.dart';
 import '../db/photo_dao.dart';
 import '../models/photo.dart';
 import 'scan_worker.dart';
@@ -37,10 +36,9 @@ class ScanProgress {
 /// unchanged is skipped without being opened, so rescanning a 50,000-photo
 /// library after adding one folder takes seconds, not minutes.
 class LibraryScanner {
-  LibraryScanner(this._dao, this._appDb);
+  LibraryScanner(this._dao);
 
   final PhotoDao _dao;
-  final AppDatabase _appDb;
 
   bool _running = false;
   bool get isRunning => _running;

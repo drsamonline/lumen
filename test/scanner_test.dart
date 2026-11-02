@@ -19,7 +19,7 @@ void main() {
   setUp(() async {
     await AppDatabase.instance.open(inMemory: true);
     photos = PhotoDao(AppDatabase.instance);
-    scanner = LibraryScanner(photos, AppDatabase.instance);
+    scanner = LibraryScanner(photos);
     root = await Directory.systemTemp.createTemp('lumen_scan_test');
   });
 

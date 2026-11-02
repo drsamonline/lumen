@@ -39,10 +39,7 @@ final thumbnailServiceProvider = Provider<ThumbnailService>((ref) {
 });
 
 final scannerProvider = Provider<LibraryScanner>((ref) {
-  final scanner = LibraryScanner(
-    ref.watch(photoDaoProvider),
-    ref.watch(databaseProvider),
-  );
+  final scanner = LibraryScanner(ref.watch(photoDaoProvider));
   ref.onDispose(scanner.dispose);
   return scanner;
 });
