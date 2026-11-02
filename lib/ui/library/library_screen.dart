@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/db/photo_dao.dart';
 import '../../state/providers.dart';
 import '../duplicates/duplicates_screen.dart';
+import '../places/places_screen.dart';
+import '../slideshow/slideshow_screen.dart';
 import 'photo_grid.dart';
 
 class LibraryScreen extends ConsumerWidget {
@@ -69,18 +71,62 @@ class LibraryScreen extends ConsumerWidget {
             ],
           ),
           IconButton(
-            tooltip: 'Find duplicates',
-            icon: const Icon(Icons.filter_none),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const DuplicatesScreen()),
-            ),
-          ),
-          IconButton(
             tooltip: 'Favourites only',
             icon: Icon(controller.filter.favoritesOnly ? Icons.star : Icons.star_border),
             onPressed: () => controller.setFilter(
               controller.filter.copyWith(favoritesOnly: !controller.filter.favoritesOnly),
             ),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              if (value == 'slideshow') {
+                if (controller.photos.isEmpty) return;
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => SlideshowScreen(photos: controller.photos),
+                  ),
+                );
+              } else if (value == 'duplicates') {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const DuplicatesScreen()),
+                );
+              } else if (value == 'places') {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const PlacesScreen()),
+                );
+              }
+            },
+            itemBuilder: (context) => const <PopupMenuEntry<String>>[
+              PopupMenuItem(
+                value: 'slideshow',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.slideshow_outlined),
+                  title: Text('Slideshow'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'duplicates',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.filter_none),
+                  title: Text('Find duplicates'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'places',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.place_outlined),
+                  title: Text('Places'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

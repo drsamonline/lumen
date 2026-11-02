@@ -11,6 +11,7 @@ import '../../core/models/photo.dart';
 import '../../core/models/person.dart';
 import '../../core/scan/exporter.dart';
 import '../../state/providers.dart';
+import '../slideshow/slideshow_screen.dart';
 import '../widgets/edited_image.dart';
 import 'edit_panel.dart';
 
@@ -392,11 +393,21 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                 _exportCopy();
               } else if (value == 'info') {
                 setState(() => _showInfo = !_showInfo);
+              } else if (value == 'slideshow') {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => SlideshowScreen(
+                      photos: widget.photos,
+                      initialIndex: _index,
+                    ),
+                  ),
+                );
               }
             },
             itemBuilder: (context) => const <PopupMenuEntry<String>>[
               PopupMenuItem(value: 'edit', child: Text('Adjust…')),
               PopupMenuItem(value: 'export', child: Text('Export edited copy')),
+              PopupMenuItem(value: 'slideshow', child: Text('Play slideshow')),
               PopupMenuItem(value: 'info', child: Text('Toggle details')),
             ],
           ),

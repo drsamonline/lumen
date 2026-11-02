@@ -16,6 +16,11 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
   scanned, so "nothing left" is a measurement rather than a claim.
 - **Three-stage search.** Exact → substring → one-edit typo tolerance, with the
   UI reporting which stage answered.
+- **Year scrubber.** Arithmetic scroll offsets, so it works without measuring
+  un-laid-out slivers.
+- **Slideshow mode.** Full screen, keyboard-controlled, auto-advancing.
+- **Places view.** Grouped by rounded GPS with a bounding-box filter. No map —
+  see Milestone 2 for the offline-basemap plan.
 
 ## Milestone 1 — finish the daily loop (next)
 
@@ -41,10 +46,9 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
 - **Movies** — the auto-generated slideshow with music, rendered locally with
   FFmpeg (bundled, no network).
 - **Photo viewer export to folder structure** — "export album as folder tree".
-- **Screensaver** — the full-screen slideshow, which is genuinely how a lot of
-  people used Picasa.
-- **Timeline scrubbing** — drag a year scrubber down the side of the grid.
 - **Print layouts** — contact sheets at real paper sizes.
+- **Smart albums** — save a filter (a place, a date range, a star rating) as a
+  live album, the way Picasa's "People"/"Folders" collections worked.
 
 ## Milestone 4 — reach and polish
 

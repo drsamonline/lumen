@@ -125,11 +125,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
           if (_hasCriteria)
-            _ModeBanner(controller: ref.watch(searchLibraryProvider(_filter))),
+            _ModeBanner(controller: ref.watch(filteredLibraryProvider(_filter))),
           Expanded(
             child: _hasCriteria
                 ? PhotoGrid(
-                    controller: ref.watch(searchLibraryProvider(_filter)),
+                    controller: ref.watch(filteredLibraryProvider(_filter)),
                     emptyTitle: 'Nothing matched',
                     emptyMessage: 'Try a shorter word, or clear the filters.',
                   )

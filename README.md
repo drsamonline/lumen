@@ -35,6 +35,15 @@ One Flutter codebase, four real native builds: **Windows, Linux, macOS, Android*
   SQLite; the original file is never modified.
 - Export an edited copy as a real PNG beside the original.
 
+**Browse**
+- Month-grouped timeline with a year scrubber down the right edge — drag it to
+  jump to any year, which is the only navigation that works at 10,000 photos.
+- Slideshow mode: full screen, auto-advance at 3/5/8/15 s, arrows to step, space
+  to pause, Escape to leave. Reachable from the library or from any photo.
+- Places: photos grouped by rounded GPS coordinate, largest group first. No map,
+  because map tiles are an internet feature — but the browsing people actually
+  did with Picasa's Places survives.
+
 **Multi-select**
 - Long-press any photo to start selecting; tap to add or remove.
 - One action bar for the whole selection: 0-5 stars, favourite / unfavourite,

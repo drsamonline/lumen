@@ -111,6 +111,27 @@ image, the grid cannot disagree with the viewer.
 Export re-runs the same maths on a `Canvas` and writes a new PNG — the original
 file is opened read-only and never written.
 
+## Places without a map
+
+GPS is stored at index time as two floats. `places()` rounds both to one decimal
+(~11 km) and groups in SQL — `GROUP BY ROUND(lat,1), ROUND(lon,1)` — so a place
+list costs one scan, not a per-photo loop. Tapping a place filters the grid with
+a **bounding box** rather than a radius, because a box is the one shape SQLite
+can answer with a range scan on plain columns.
+
+There is no map. Rendering pins needs tiles, tiles need a network, and the app
+does not use one. A bundled vector basemap is the roadmap answer, not a tile
+fetch.
+
+## Timeline scrubber
+
+The scrubber needs a scroll offset per year, and measuring real slivers is
+impossible for content that has not been laid out. Instead `_markers()` computes
+each year's offset arithmetically: the same column formula the grid delegate
+uses (`ceil(usable / (extent + spacing))`), multiplied by the known tile height
+and header height. That lands within a row, which is invisible when the target
+is a year, and costs nothing.
+
 ## Selection and bulk edits
 
 Selection lives inside `PhotoGrid`, not in a global provider. The library and

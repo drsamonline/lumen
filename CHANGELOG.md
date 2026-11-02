@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.4.0
+
+- **Year scrubber.** A vertical year rail down the right edge of the grid. Drag
+  or tap to jump to a year; the active year highlights. Offsets are computed
+  arithmetically from the grid delegate's own column formula rather than
+  measured, so it works on content that was never laid out.
+- **Slideshow mode.** Full screen, auto-advance at 3/5/8/15 seconds, arrow keys
+  to step, space to pause, Escape to exit, tap left/right thirds to move. Loads
+  the current photo and the next two so a transition never shows a blank frame.
+  Reachable from the library overflow menu and from the viewer.
+- **Places.** Photos grouped by rounded coordinate, largest first, with a
+  representative thumbnail. Tapping one filters the grid by a bounding box.
+  No map tiles and no reverse geocoding — both would need a network.
+- **`PhotoFilter` gains a geographic box** (`nearLat`, `nearLon`, `radiusDeg`),
+  so a place is just another filter and reuses the existing scoped controller.
+- **Library overflow menu** replaces the growing row of app-bar icons.
+- `searchLibraryProvider` renamed to `filteredLibraryProvider` — it serves any
+  filter, not only a search.
+
 ## 1.3.0
 
 - **Multi-select.** Long-press to start, tap to toggle. Selection state is local

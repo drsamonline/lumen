@@ -16,6 +16,9 @@ class PhotoFilter {
     this.favoritesOnly = false,
     this.fromMs,
     this.toMs,
+    this.nearLat,
+    this.nearLon,
+    this.radiusDeg = 0.25,
     this.sort = PhotoSort.dateTakenDesc,
   });
 
@@ -27,6 +30,13 @@ class PhotoFilter {
   final bool favoritesOnly;
   final int? fromMs;
   final int? toMs;
+
+  /// A geographic box, not a radius: the index stores plain lat/lon, and a
+  /// bounding box is the one query SQLite can answer with a range scan.
+  final double? nearLat;
+  final double? nearLon;
+  final double radiusDeg;
+
   final PhotoSort sort;
 
   bool get isActive =>
@@ -37,7 +47,8 @@ class PhotoFilter {
       minRating > 0 ||
       favoritesOnly ||
       fromMs != null ||
-      toMs != null;
+      toMs != null ||
+      (nearLat != null && nearLon != null);
 
   @override
   bool operator ==(Object other) =>
@@ -51,6 +62,9 @@ class PhotoFilter {
           favoritesOnly == other.favoritesOnly &&
           fromMs == other.fromMs &&
           toMs == other.toMs &&
+          nearLat == other.nearLat &&
+          nearLon == other.nearLon &&
+          radiusDeg == other.radiusDeg &&
           sort == other.sort;
 
   @override
@@ -63,6 +77,9 @@ class PhotoFilter {
         favoritesOnly,
         fromMs,
         toMs,
+        nearLat,
+        nearLon,
+        radiusDeg,
         sort,
       );
 
@@ -75,11 +92,15 @@ class PhotoFilter {
     bool? favoritesOnly,
     int? fromMs,
     int? toMs,
+    double? nearLat,
+    double? nearLon,
+    double? radiusDeg,
     PhotoSort? sort,
     bool clearFolder = false,
     bool clearAlbum = false,
     bool clearPerson = false,
     bool clearDates = false,
+    bool clearPlace = false,
   }) {
     return PhotoFilter(
       query: query ?? this.query,
@@ -90,6 +111,9 @@ class PhotoFilter {
       favoritesOnly: favoritesOnly ?? this.favoritesOnly,
       fromMs: clearDates ? null : (fromMs ?? this.fromMs),
       toMs: clearDates ? null : (toMs ?? this.toMs),
+      nearLat: clearPlace ? null : (nearLat ?? this.nearLat),
+      nearLon: clearPlace ? null : (nearLon ?? this.nearLon),
+      radiusDeg: radiusDeg ?? this.radiusDeg,
       sort: sort ?? this.sort,
     );
   }
@@ -472,6 +496,30 @@ class PhotoDao {
         .toList(growable: false);
   }
 
+  /// Photos grouped into rough places, without any reverse geocoding.
+  ///
+  /// Coordinates are rounded to one decimal (~11 km at the equator) and grouped
+  /// in SQL. No map, no tiles, no network — just "these photos were taken near
+  /// here", which is the part of Picasa's Places view that people actually used.
+  Future<List<PlaceBucket>> places({int limit = 200}) async {
+    final rows = await _db.rawQuery(
+      'SELECT ROUND(lat, 1) AS la, ROUND(lon, 1) AS lo, COUNT(*) AS c, '
+      'MIN(id) AS sample_id, MIN(taken_at_ms) AS first_ms '
+      'FROM photos WHERE missing = 0 AND lat IS NOT NULL AND lon IS NOT NULL '
+      'GROUP BY la, lo ORDER BY c DESC LIMIT ?',
+      <Object?>[limit],
+    );
+    return rows
+        .map((r) => PlaceBucket(
+              lat: (r['la'] as num).toDouble(),
+              lon: (r['lo'] as num).toDouble(),
+              count: (r['c'] as int?) ?? 0,
+              samplePhotoId: r['sample_id'] as int?,
+              firstTakenMs: (r['first_ms'] as int?) ?? 0,
+            ))
+        .toList(growable: false);
+  }
+
   Future<List<String>> folders() async {
     final rows = await _db.rawQuery(
       'SELECT folder, COUNT(*) AS c FROM photos WHERE missing = 0 '
@@ -526,6 +574,17 @@ class PhotoDao {
       where.add('taken_at_ms <= ?');
       args.add(filter.toMs);
     }
+    if (filter.nearLat != null && filter.nearLon != null) {
+      final r = filter.radiusDeg.abs();
+      where.add('lat IS NOT NULL AND lon IS NOT NULL '
+          'AND lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?');
+      args.addAll(<Object?>[
+        filter.nearLat! - r,
+        filter.nearLat! + r,
+        filter.nearLon! - r,
+        filter.nearLon! + r,
+      ]);
+    }
 
     final q = filter.query.trim();
     if (q.isNotEmpty) {
@@ -578,6 +637,31 @@ class SearchResult {
   const SearchResult({required this.photos, required this.mode});
   final List<Photo> photos;
   final SearchMode mode;
+}
+
+/// One rough place: a rounded coordinate pair and how many photos are there.
+class PlaceBucket {
+  const PlaceBucket({
+    required this.lat,
+    required this.lon,
+    required this.count,
+    required this.samplePhotoId,
+    required this.firstTakenMs,
+  });
+
+  final double lat;
+  final double lon;
+  final int count;
+  final int? samplePhotoId;
+  final int firstTakenMs;
+
+  String get coordinateLabel {
+    final ns = lat >= 0 ? 'N' : 'S';
+    final ew = lon >= 0 ? 'E' : 'W';
+    return '${lat.abs().toStringAsFixed(1)}° $ns, ${lon.abs().toStringAsFixed(1)}° $ew';
+  }
+
+  PhotoFilter get filter => PhotoFilter(nearLat: lat, nearLon: lon, radiusDeg: 0.25);
 }
 
 class HashRow {

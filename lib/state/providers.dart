@@ -107,9 +107,10 @@ final personLibraryProvider =
   return controller;
 });
 
-/// A scoped controller for one search. Keyed by the filter itself, which is
-/// value-equal, so an identical search reuses the same instance.
-final searchLibraryProvider =
+/// A scoped controller for any arbitrary filter — a search, a place, a date
+/// range. Keyed by the filter itself, which is value-equal, so an identical
+/// filter reuses the same controller instance.
+final filteredLibraryProvider =
     ChangeNotifierProvider.family<LibraryController, PhotoFilter>((ref, filter) {
   final controller = LibraryController(
     dao: ref.watch(photoDaoProvider),
