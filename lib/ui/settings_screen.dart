@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/formats/format_registry.dart';
+import '../core/formats/image_format.dart';
 import '../core/lan/lan_server.dart';
 import '../state/providers.dart';
 
@@ -20,10 +22,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   double _thumbSize = 160;
   bool _watching = false;
   bool _lanOn = false;
+  late Future<List<FormatStatus>> _formats;
 
   @override
   void initState() {
     super.initState();
+    // Probed once and cached; re-probing on every rebuild would spawn a process
+    // per decoder on each frame.
+    _formats = ImageFormatRegistry.instance.status();
     final settings = ref.read(settingsProvider);
     _thumbSize = settings.thumbSize;
     _watching = settings.watcherEnabled;
@@ -207,6 +213,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
 
+          const _SectionHeader('Image formats'),
+          FutureBuilder<List<FormatStatus>>(
+            future: _formats,
+            builder: (context, snapshot) {
+              final statuses = snapshot.data;
+              if (statuses == null) {
+                return const ListTile(
+                  dense: true,
+                  title: Text('Checking installed decoders…'),
+                );
+              }
+              return Column(
+                children: <Widget>[
+                  for (final status in statuses) _FormatTile(status: status),
+                  ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.info_outline, size: 20),
+                    title: Text(
+                      'Formats beyond the built-in ones are decoded by established '
+                      'open-source libraries installed on this machine. Lumen never '
+                      'downloads or bundles one.',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+
           const _SectionHeader('About'),
           const ListTile(
             leading: Icon(Icons.wifi_off),
@@ -232,6 +267,46 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _FormatTile extends StatelessWidget {
+  const _FormatTile({required this.status});
+
+  final FormatStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final plugin = status.plugin;
+    final ready = status.availability != FormatAvailability.needsInstall;
+
+    return ListTile(
+      leading: Icon(
+        ready ? Icons.check_circle_outline : Icons.download_outlined,
+        color: ready ? scheme.primary : scheme.onSurfaceVariant,
+      ),
+      title: Row(
+        children: <Widget>[
+          Flexible(child: Text(plugin.displayName)),
+          const SizedBox(width: 8),
+          Text(
+            status.extensionsLabel,
+            style: Theme.of(context)
+                .textTheme
+                .labelSmall
+                ?.copyWith(color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+      subtitle: Text(
+        ready
+            ? plugin.poweredBy
+            : '${plugin.requirement ?? 'Not installed'}\nUses ${plugin.poweredBy}',
+        style: Theme.of(context).textTheme.bodySmall,
+      ),
+      isThreeLine: !ready,
     );
   }
 }

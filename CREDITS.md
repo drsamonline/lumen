@@ -14,10 +14,29 @@ traced back to the thing it was ported from.
 | **Album → ZIP, store-only, streamed** | `export-kit` — "bundle files into a store-only ZIP" | The decision not to DEFLATE already-compressed photos, and the streaming shape so a large album is bounded by disk, not RAM. `lib/core/export/zip_writer.dart`. |
 | **LAN host pattern** — serve the library, print the addresses, browse from a plain browser on the same Wi-Fi | `app-lantern` | The product shape of the LAN feature, and the "no internet at any point" framing. Lumen's host is Dart (`lib/core/lan/`), not Node. |
 
+## Decoder libraries behind the format plugins
+
+These are the open-source projects Lumen calls for formats its engine cannot
+read. They are **not** vendored, bundled or downloaded — Lumen uses whatever the
+user has installed, and the settings screen says so.
+
+| Format | Library | Licence | Binding |
+|---|---|---|---|
+| HEIC / HEIF / AVIF | libheif, libavif | LGPL-3.0, BSD-2-Clause | `heif-convert`, or ImageMagick |
+| TIFF | libtiff | libtiff licence | ImageMagick |
+| Camera RAW (CR2, NEF, ARW, DNG, RAF, ORF, …) | LibRaw, darktable | LGPL-2.1/CDDL-1.0, GPL-3.0 | `darktable-cli`, or ImageMagick |
+| JPEG XL | libjxl | BSD-3-Clause | `djxl`, or ImageMagick |
+| PSD / TGA / DDS / EXR / HDR | ImageMagick | ImageMagick licence | `magick` |
+| JPEG / PNG / WebP / GIF / BMP / WBMP | Skia / Impeller | BSD-3-Clause | in-process (Flutter engine) |
+
+`darktable` was on the original reference list; this is where it actually earns
+its place, as the RAW decoder rather than as a wholesale port.
+
 ## Read, but not taken
 
-- **`darktable`** — the RAW development pipeline. Demosaicing needs libraw as a
-  native binding; it is on the roadmap, not in v1.
+- **`darktable`** — originally listed as a wholesale reference. Its *decoder*
+  is now used, through `darktable-cli`, for RAW files. Its editing pipeline was
+  not ported: Lumen's non-destructive model is its own.
 - **`coil`, `glide`, `fresco`** — Android-only image loaders. Flutter's engine
   already downsamples during decode (`instantiateImageCodec` with a target
   width), so adding one would have bought a dependency and no speed.

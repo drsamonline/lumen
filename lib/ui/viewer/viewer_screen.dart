@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/formats/format_registry.dart';
 import '../../core/models/album.dart';
 import '../../core/models/edit_recipe.dart';
 import '../../core/models/photo.dart';
@@ -35,6 +37,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   EditRecipe _recipe = EditRecipe.empty;
   EditRecipe _savedRecipe = EditRecipe.empty;
+
+  /// Pixels decoded through the format registry, for formats the engine cannot
+  /// read directly (HEIC, TIFF, RAW, JXL). Null for ordinary JPEG/PNG.
+  ui.Image? _decoded;
   bool _showInfo = true;
 
   bool? _favoriteOverride;
@@ -56,6 +62,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   @override
   void dispose() {
+    _decoded?.dispose();
     _page.dispose();
     super.dispose();
   }
@@ -64,8 +71,23 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     final photo = _photo;
     final recipe = await ref.read(editDaoProvider).recipeFor(photo.id);
     final faces = await ref.read(personDaoProvider).facesFor(photo.id);
-    if (!mounted) return;
+
+    // Only pay the decode when the engine genuinely cannot read the file.
+    ui.Image? decoded;
+    if (!ImageFormatRegistry.instance.isEngineNative(photo.path)) {
+      decoded = await ImageFormatRegistry.instance.decode(
+        File(photo.path),
+        targetWidth: 2400,
+      );
+    }
+
+    if (!mounted) {
+      decoded?.dispose();
+      return;
+    }
     setState(() {
+      _decoded?.dispose();
+      _decoded = decoded;
       _recipe = recipe;
       _savedRecipe = recipe;
       _faces = faces;
@@ -74,6 +96,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   void _onPageChanged(int index) {
     setState(() {
+      _decoded?.dispose();
+      _decoded = null;
       _index = index;
       _tagMode = false;
       _dragStart = null;
@@ -401,6 +425,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                                 recipe: isCurrent ? _recipe : EditRecipe.empty,
                                 fit: BoxFit.contain,
                                 cacheWidth: 2400,
+                                decoded: isCurrent ? _decoded : null,
                               ),
                             ),
                             if (isCurrent)

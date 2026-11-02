@@ -117,7 +117,8 @@ const String kGalleryHtmlTemplate = r"""
 
   function openLightbox(photo) {
     var lb = document.getElementById('lb');
-    document.getElementById('lbimg').src = '/photo/' + photo.id;
+    // /view/ transcodes formats a browser cannot read (HEIC, RAW, TIFF).
+    document.getElementById('lbimg').src = '/view/' + photo.id;
     document.getElementById('lbname').textContent = photo.file_name;
     var bits = [];
     if (photo.camera_model) bits.push(photo.camera_model);

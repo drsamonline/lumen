@@ -111,6 +111,37 @@ image, the grid cannot disagree with the viewer.
 Export re-runs the same maths on a `Canvas` and writes a new PNG — the original
 file is opened read-only and never written.
 
+## Image formats
+
+`ImageFormatPlugin` is the whole contract: which extensions it claims, which
+open-source library backs it, what the user must install, and how to decode to a
+`ui.Image`.
+
+`ImageFormatRegistry` builds an extension → plugin index once, with **first
+claim wins**, so the engine's native formats always take the fast in-process
+path and a later plugin cannot accidentally shadow them. The scanner, the
+thumbnailer, the viewer, the exporter and the LAN server all ask the registry;
+none of them inspects a file suffix. Adding a format is one entry in
+`defaultPlugins()`.
+
+Two plugin kinds ship:
+
+- `EngineImagePlugin` — the Flutter engine. Downsamples during decode, always
+  available, `browserSafe`.
+- `ExternalDecoderPlugin` — runs an open-source project's own CLI
+  (`heif-convert`, `darktable-cli`, `djxl`, `magick`) against a temp file and
+  decodes the PNG it writes.
+
+The CLI binding was chosen over FFI deliberately: no compilation, no per-platform
+build, and a mismatched shared library cannot crash the app — the worst case is
+a failed process. The cost is one spawn per *new* file, which is bounded because
+thumbnails are generated once and cached. `probe()` is cached per plugin, so the
+settings screen does not spawn a process per frame.
+
+One safety rule is encoded here rather than in documentation: ImageMagick 6's
+binary is called `convert`, which on Windows is also the FAT-to-NTFS tool. That
+candidate is never offered on Windows.
+
 ## Duplicate detection
 
 A 64-bit dHash per photo, computed from the 480 px thumbnail that already exists

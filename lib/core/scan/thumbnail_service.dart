@@ -7,6 +7,7 @@ import 'dart:ui' as ui;
 import '../app_paths.dart';
 import '../db/database.dart';
 import '../db/photo_dao.dart';
+import '../formats/format_registry.dart';
 
 /// Generates and caches grid thumbnails.
 ///
@@ -76,18 +77,16 @@ class ThumbnailService {
         return;
       }
 
-      final bytes = await source.readAsBytes();
-      final codec = await ui.instantiateImageCodec(
-        bytes,
+      // Decoding goes through the format registry, so a HEIC or a RAW file
+      // produces a thumbnail exactly like a JPEG does.
+      final image = await ImageFormatRegistry.instance.decode(
+        source,
         targetWidth: thumbWidth,
-        allowUpscaling: false,
       );
-      final frame = await codec.getNextFrame();
-      final image = frame.image;
+      if (image == null) return;
 
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       image.dispose();
-      codec.dispose();
 
       if (byteData == null) return;
       final png = byteData.buffer.asUint8List(
@@ -107,19 +106,10 @@ class ThumbnailService {
   /// Decode an image at a bounded size for the full-screen viewer, so a 50 MP
   /// file does not allocate 200 MB of RAM.
   static Future<ui.Image?> decodeBounded(String path, {int maxWidth = 2048}) async {
-    try {
-      final bytes = await File(path).readAsBytes();
-      final codec = await ui.instantiateImageCodec(
-        bytes,
-        targetWidth: maxWidth,
-        allowUpscaling: false,
-      );
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      return frame.image;
-    } catch (_) {
-      return null;
-    }
+    return ImageFormatRegistry.instance.decode(
+      File(path),
+      targetWidth: maxWidth,
+    );
   }
 
   Future<void> dispose() async {

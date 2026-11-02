@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.0
+
+- **Pluggable image formats.** `ImageFormatPlugin` + `ImageFormatRegistry`;
+  the scanner, thumbnailer, viewer and LAN server all route through the registry
+  instead of testing file extensions. Adding a format is one plugin entry.
+- **Open-source decoder plugins** for HEIC/HEIF/AVIF (libheif, libavif), TIFF
+  (libtiff), camera RAW (LibRaw / darktable), JPEG XL (libjxl) and
+  PSD/TGA/DDS/EXR/HDR (ImageMagick). Each is active only when its tool is on
+  `PATH`; nothing is bundled or downloaded.
+- **Settings reports every plugin** with its readiness, its backing library and
+  the exact command to install.
+- **LAN gallery transcodes** formats a browser cannot render, via a new `/view/`
+  route, so HEIC and RAW still open on a phone or TV.
+- The viewer decodes non-native formats through the registry and feeds the same
+  non-destructive edit stack.
+- Guard: ImageMagick's legacy `convert` binary is never invoked on Windows.
+
 ## 1.1.0
 
 Feature work, mostly ported from the rest of the fleet (see `CREDITS.md`).

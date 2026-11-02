@@ -1,5 +1,6 @@
 import 'package:sqflite/sqflite.dart';
 
+import '../formats/format_registry.dart';
 import '../models/photo.dart';
 import '../search/fuzzy.dart';
 import 'database.dart';
@@ -102,12 +103,10 @@ class PhotoDao {
   final AppDatabase _appDb;
   Database get _db => _appDb.db;
 
-  static const _imageExtensions = <String>{
-    'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'jfif',
-  };
-
+  /// Delegates to the format registry, so a newly installed decoder plugin
+  /// makes its formats indexable without touching this class.
   static bool isSupportedExtension(String ext) =>
-      _imageExtensions.contains(ext.toLowerCase());
+      ImageFormatRegistry.instance.isSupportedExtension(ext);
 
   // ------------------------------------------------------------------ writes
 

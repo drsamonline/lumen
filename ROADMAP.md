@@ -50,8 +50,13 @@ Ordered by how much each one changes daily use, not by how fun it is to build.
 
 - **iOS.** The codebase already targets it; only the folder-access model needs
   work (photo-library permission instead of a folder picker).
-- **RAW support.** `darktable`-style demosaicing via a native libraw binding —
-  this is the one place the referenced darktable repo genuinely helps.
+- **RAW as first-class citizens.** Reading RAW works today through
+  `darktable-cli` or ImageMagick. What is missing is *developing* one: an
+  embedded preview is shown at the camera's JPEG size, and demosaicing at full
+  resolution needs an FFI binding to LibRaw rather than a process spawn.
+- **FFI decoder plugins.** The `ImageFormatPlugin` interface is already the right
+  shape; a `LibHeifFfiPlugin` and a `LibRawFfiPlugin` would make HEIC and RAW
+  work on Android, where there is no shell to call.
 - **Colour management.** ICC profile awareness, so wide-gamut photos do not
   shift on screen.
 - **Accessibility pass.** Screen-reader labels on every tile, full keyboard

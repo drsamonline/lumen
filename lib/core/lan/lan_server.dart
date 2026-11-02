@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../app_paths.dart';
 import '../db/edit_dao.dart';
+import '../formats/format_registry.dart';
 import '../db/photo_dao.dart';
 import '../models/photo.dart';
 import 'web_gallery_html.dart';
@@ -93,6 +94,9 @@ class LanServer {
       }
       if (path.startsWith('/photo/')) {
         return _serveOriginal(request, path.substring('/photo/'.length));
+      }
+      if (path.startsWith('/view/')) {
+        return _serveBrowserImage(request, path.substring('/view/'.length));
       }
       if (path == '/health') {
         request.response
@@ -210,6 +214,41 @@ class LanServer {
       ..headers.contentType = _contentTypeFor(photo.ext)
       ..headers.set('Cache-Control', 'public, max-age=3600');
     await file.openRead().pipe(request.response);
+  }
+
+  /// Always returns something a browser can paint.
+  ///
+  /// A phone browsing the gallery has no HEIC or RAW decoder, so for those
+  /// formats the file is transcoded once through its plugin and served as PNG.
+  /// Native formats are streamed straight from disk as before.
+  Future<void> _serveBrowserImage(HttpRequest request, String rawId) async {
+    final id = int.tryParse(rawId);
+    if (id == null) {
+      request.response.statusCode = HttpStatus.badRequest;
+      return request.response.close();
+    }
+    final photo = await _dao.byId(id);
+    if (photo == null) {
+      request.response.statusCode = HttpStatus.notFound;
+      return request.response.close();
+    }
+
+    if (ImageFormatRegistry.instance.isBrowserSafe(photo.path)) {
+      return _serveOriginal(request, rawId);
+    }
+
+    final bytes = await ImageFormatRegistry.instance.browserBytes(File(photo.path));
+    if (bytes == null) {
+      request.response.statusCode = HttpStatus.unsupportedMediaType;
+      return request.response.close();
+    }
+    request.response
+      ..statusCode = HttpStatus.ok
+      ..headers.contentType = ContentType('image', 'png')
+      ..headers.set('Cache-Control', 'public, max-age=3600')
+      ..headers.set('X-Lumen-Transcoded', '1');
+    request.response.add(bytes);
+    await request.response.close();
   }
 
   ContentType _contentTypeFor(String ext) {

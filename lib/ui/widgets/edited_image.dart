@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
@@ -16,6 +17,7 @@ class EditedImage extends StatelessWidget {
     this.recipe = EditRecipe.empty,
     this.fit = BoxFit.cover,
     this.cacheWidth,
+    this.decoded,
   });
 
   final File file;
@@ -23,16 +25,27 @@ class EditedImage extends StatelessWidget {
   final BoxFit fit;
   final int? cacheWidth;
 
+  /// Set for formats the engine cannot read directly (HEIC, RAW, TIFF). The
+  /// caller decodes through the format registry and hands the pixels in, so the
+  /// same edit stack applies to every format.
+  final ui.Image? decoded;
+
   @override
   Widget build(BuildContext context) {
-    Widget child = Image.file(
-      file,
-      fit: fit,
-      cacheWidth: cacheWidth,
-      gaplessPlayback: true,
-      filterQuality: FilterQuality.medium,
-      errorBuilder: (context, error, stack) => const _BrokenTile(),
-    );
+    Widget child = decoded != null
+        ? RawImage(
+            image: decoded,
+            fit: fit,
+            filterQuality: FilterQuality.medium,
+          )
+        : Image.file(
+            file,
+            fit: fit,
+            cacheWidth: cacheWidth,
+            gaplessPlayback: true,
+            filterQuality: FilterQuality.medium,
+            errorBuilder: (context, error, stack) => const _BrokenTile(),
+          );
 
     if (recipe.hasColorWork) {
       child = ColorFiltered(

@@ -50,6 +50,21 @@ One Flutter codebase, four real native builds: **Windows, Linux, macOS, Android*
   approximate results as if they were exact.
 - Filter chips for favourites and star ratings.
 
+**Image formats**
+- Nothing about formats is hardcoded. Every format is a plugin, and the scanner,
+  thumbnailer, viewer and LAN server all ask the registry rather than testing a
+  suffix — so installing a decoder makes its formats indexable with no code
+  change.
+- **Built in, always:** JPEG, PNG, WebP (still and animated), GIF, BMP, WBMP.
+- **Via open-source decoders, when installed:** HEIC/HEIF/AVIF (libheif,
+  libavif), TIFF (libtiff), camera RAW — CR2, CR3, NEF, ARW, DNG, RAF, RW2, ORF,
+  PEF and more (LibRaw, darktable), JPEG XL (libjxl), and PSD/TGA/DDS/EXR/HDR
+  (ImageMagick).
+- Settings shows every plugin, whether it is ready, and exactly what to install
+  if it is not. Lumen never downloads or bundles a decoder.
+- The LAN gallery transcodes formats a browser cannot paint, so a HEIC photo
+  still opens on a TV.
+
 **Duplicates**
 - Perceptual fingerprints (64-bit dHash) computed from the thumbnails that
   already exist, so a duplicate scan costs one cheap decode per photo.
@@ -150,6 +165,10 @@ flutter test
 - `test/db_test.dart` — indexing, paging, filters, FTS search, month buckets,
   albums, edit persistence.
 - `test/offline_guard_test.dart` — proves no outbound network client exists.
+- `test/format_registry_test.dart` — extension routing, plugin precedence, and
+  that every shipped plugin declares its backing library and its requirement.
+- `test/hash_test.dart`, `test/fuzzy_test.dart`, `test/zip_test.dart`,
+  `test/metadata_check_test.dart` — the v1.1 feature logic.
 
 ---
 
@@ -181,5 +200,11 @@ missing, and why, is in `ROADMAP.md`. The two you will notice first:
    the extras stays a manual act, because a wrong automatic delete is the one
    mistake a photo library cannot apologise for.
 4. **Video files are not indexed.** Photos only, for now.
-5. **HEIC/TIFF** decode is not available through the Flutter engine by default.
-   JPEG, PNG, WebP, GIF and BMP all work.
+5. **Exotic formats need a decoder installed.** JPEG, PNG, WebP, GIF, BMP and
+   WBMP work out of the box; HEIC, TIFF, RAW and JPEG XL need their open-source
+   tool on `PATH` (see *Image formats* above). That is deliberate — bundling
+   libheif and LibRaw would multiply the binary size and the licence surface.
+6. **The external decoders are CLI bindings, not FFI.** That keeps the build
+   dependency-free and crash-safe, and it works on Windows, Linux and macOS. On
+   Android there is no shell, so those formats stay unavailable there until an
+   FFI plugin is added — the interface is already shaped for one.
