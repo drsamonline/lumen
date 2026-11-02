@@ -80,7 +80,7 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
     final columns = usable <= 0
         ? 1
         : math.max(1, (usable / (_tileExtent + 4)).ceil());
-    const headerHeight = 48.0;
+    const headerHeight = _MonthHeaderDelegate.height;
     final rowHeight = _tileExtent + 4;
 
     final markers = <_ScrubMarker>[];
@@ -142,7 +142,17 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
     final slivers = <Widget>[];
 
     for (final group in groups) {
-      slivers.add(SliverToBoxAdapter(child: _MonthHeader(label: group.label, count: group.photos.length)));
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _MonthHeaderDelegate(
+            label: group.label,
+            count: group.photos.length,
+            background: Theme.of(context).colorScheme.surface,
+            divider: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+      );
       slivers.add(
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
@@ -340,34 +350,65 @@ class _MonthGroup {
   final List<Photo> photos = <Photo>[];
 }
 
-class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({required this.label, required this.count});
+/// A month label that stays pinned while its group scrolls past.
+///
+/// Height is fixed so the scroll-offset estimate used by the year rail can count
+/// it exactly.
+class _MonthHeaderDelegate extends SliverPersistentHeaderDelegate {
+  _MonthHeaderDelegate({
+    required this.label,
+    required this.count,
+    required this.background,
+    required this.divider,
+  });
 
   final String label;
   final int count;
+  final Color background;
+  final Color divider;
+
+  static const double height = 44;
 
   @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+  double get minExtent => height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final text = Theme.of(context).textTheme;
+    return Container(
+      // Opaque, so tiles scrolling underneath do not show through the label.
+      color: background,
+      alignment: Alignment.bottomLeft,
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.baseline,
         textBaseline: TextBaseline.alphabetic,
         children: <Widget>[
-          Text(label, style: Theme.of(context).textTheme.titleSmall),
+          Text(label, style: text.titleSmall),
           const SizedBox(width: 10),
           Text(
             '$count',
-            style: Theme.of(context)
-                .textTheme
-                .labelSmall
-                ?.copyWith(color: scheme.onSurfaceVariant),
+            style: text.labelSmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
+      foregroundDecoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: divider, width: 0.5)),
+      ),
     );
   }
+
+  @override
+  bool shouldRebuild(_MonthHeaderDelegate oldDelegate) =>
+      oldDelegate.label != label ||
+      oldDelegate.count != count ||
+      oldDelegate.background != background ||
+      oldDelegate.divider != divider;
 }
 
 class _PhotoTile extends ConsumerWidget {

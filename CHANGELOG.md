@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.6.4 - pinned month headers
+
+The library showed no dates at all while scrolling.
+
+- The header was a `SliverToBoxAdapter`, which scrolls away with its group. With
+  a handful of large month groups - 131 photos can be two or three months - the
+  label is off screen for almost the entire library. That is not a rendering
+  bug, it is the wrong widget: a date you can only see at the top of a
+  66-row group is not a date.
+- Headers are now `SliverPersistentHeader(pinned: true)`: the month stays at the
+  top while you scroll through its photos, the way Picasa did it. Fixed 44 px
+  height, opaque background so tiles pass underneath, hairline divider.
+- The year rail's scroll-offset estimate reads that height from one constant, so
+  the two cannot drift.
+
 ## 1.6.3 - what the Android screenshots showed
 
 The app runs. Four defects were visible on a real phone that no desktop build
