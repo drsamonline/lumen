@@ -177,9 +177,12 @@ On first run, tap **Use camera roll** on the setup screen; it adds
 
 ## Tests
 
-CI runs these on every push (`.github/workflows/test.yml`): `flutter analyze`
-then `flutter test`, followed by a Linux desktop compile that proves the native
-plugins link. Locally:
+CI runs on every push (`.github/workflows/test.yml`): `flutter analyze`, then
+`flutter test`, then three real compiles — Linux desktop, Windows desktop and an
+Android APK. That is the evidence behind "one codebase, four platforms"; macOS
+is the only target not built in CI, because it needs a macOS runner.
+
+Locally:
 
 ```bash
 flutter test

@@ -90,3 +90,66 @@ jobs:
       # native plugins link, it is not producing something to ship.
       - name: Compile
         run: flutter build linux --debug
+
+  build-windows:
+    name: Build Windows desktop
+    runs-on: windows-latest
+    timeout-minutes: 40
+    needs: analyze-and-test
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Generate Windows platform folder
+        run: flutter create --platforms=windows --project-name lumen .
+
+      # The Windows desktop build is the one that catches sqflite_common_ffi
+      # and file_picker disagreeing about a Windows API.
+      - name: Compile
+        run: flutter build windows --debug
+
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: analyze-and-test
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Generate Android platform folder
+        run: flutter create --platforms=android --project-name lumen .
+
+      # The manifest permissions the app needs are documented in README.md and
+      # are not applied here; this job only proves the Dart compiles and the
+      # plugins resolve for Android.
+      - name: Compile
+        run: flutter build apk --debug

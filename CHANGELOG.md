@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.4.5 - three platforms verified
+
+The first green run proved Linux compiles with every native plugin linked. The
+other two thirds of the cross-platform claim were still untested, so the
+workflow now builds all three:
+
+- **Linux desktop** - GTK toolchain, `flutter build linux --debug`.
+- **Windows desktop** - `windows-latest`, `flutter build windows --debug`. This
+  is the job that catches `sqflite_common_ffi` or `file_picker` disagreeing with
+  a Windows API.
+- **Android APK** - JDK 17, `flutter build apk --debug`.
+
+macOS is deliberately not built: it needs a macOS runner, which is billed at a
+higher rate. It remains the one platform with no compile evidence.
+
+Run 7 (Linux) was the first fully green run: analysis clean, 97 tests passing,
+desktop compile succeeded.
+
 ## 1.4.4 - first test run: 95 passing, 2 failing
 
 Static analysis is green. The suite ran under a real Dart VM for the first
