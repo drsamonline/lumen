@@ -58,7 +58,32 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   bool _tagMode = false;
   Offset? _dragStart;
   Offset? _dragCurrent;
-  Size _imageBox = const Size(1, 1);
+  /// True while the current photo is zoomed in. The PageView is locked out
+  /// while it is: a horizontal drag on a zoomed photo is a pan, and letting the
+  /// pager claim it flipped to the next photo mid-gesture.
+  bool _zoomed = false;
+
+  /// The box the tag gesture started in. Per-gesture rather than a field shared
+  /// across pages — with different aspect ratios the neighbour's box is not the
+  /// one the user dragged in.
+  Size _dragBox = const Size(1, 1);
+
+  /// Decode width, matched to the screen rather than fixed.
+  ///
+  /// A fixed 2400 px decode is right on a tablet and roughly four times the
+  /// pixels a 1080p phone can show, which is peak memory for no visible gain.
+  /// Sized from the device pixel width, with a floor so zooming stays sharp.
+  int _decodeWidth = 1600;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final media = MediaQuery.of(context);
+    final physical = (media.size.width * media.devicePixelRatio).round();
+    // 1.5x the viewport keeps detail when zoomed, without holding a poster-size
+    // bitmap per page.
+    _decodeWidth = (physical * 1.5).round().clamp(1080, 2600);
+  }
   List<Face> _faces = const <Face>[];
 
   Photo get _photo => widget.photos[_index];
@@ -91,7 +116,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (needsPixels) {
       final base = await ImageFormatRegistry.instance.decode(
         File(photo.path),
-        targetWidth: 2400,
+        targetWidth: _decodeWidth,
       );
       if (base != null) {
         decoded = recipe.hasCurve
@@ -327,10 +352,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     final rect = Rect.fromPoints(start, current);
     if (rect.width < 12 || rect.height < 12) return;
 
-    final nx = (rect.left / _imageBox.width).clamp(0.0, 1.0);
-    final ny = (rect.top / _imageBox.height).clamp(0.0, 1.0);
-    final nw = (rect.width / _imageBox.width).clamp(0.0, 1.0);
-    final nh = (rect.height / _imageBox.height).clamp(0.0, 1.0);
+    final nx = (rect.left / _dragBox.width).clamp(0.0, 1.0);
+    final ny = (rect.top / _dragBox.height).clamp(0.0, 1.0);
+    final nw = (rect.width / _dragBox.width).clamp(0.0, 1.0);
+    final nh = (rect.height / _dragBox.height).clamp(0.0, 1.0);
 
     final personDao = ref.read(personDaoProvider);
     final people = await personDao.all();
@@ -411,9 +436,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   @override
   Widget build(BuildContext context) {
     final photo = _photo;
-    final aspect = (photo.width != null && photo.height != null && photo.height! > 0)
+    var aspect = (photo.width != null && photo.height != null && photo.height! > 0)
         ? photo.width! / photo.height!
         : 1.0;
+    // A quarter turn swaps the displayed aspect; without this the box and the
+    // picture disagree and everything about zoom and pan feels wrong.
+    if ((_recipe.rotate ~/ 90) % 2 == 1) aspect = 1 / aspect;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -483,6 +511,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             child: PageView.builder(
               controller: _page,
               onPageChanged: _onPageChanged,
+              // While zoomed, a horizontal drag belongs to the photo, not the
+              // pager. Without this, panning a zoomed photo swiped to the next.
+              physics: _zoomed
+                  ? const NeverScrollableScrollPhysics()
+                  : const PageScrollPhysics(),
               itemCount: widget.photos.length,
               itemBuilder: (context, i) {
                 final item = widget.photos[i];
@@ -492,20 +525,27 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     aspectRatio: aspect,
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        _imageBox = Size(constraints.maxWidth, constraints.maxHeight);
                         return Stack(
                           fit: StackFit.expand,
                           children: <Widget>[
-                            InteractiveViewer(
-                              minScale: 1,
-                              maxScale: 6,
-                              panEnabled: !_tagMode,
-                              scaleEnabled: !_tagMode,
+                            _ZoomableImage(
+                              active: isCurrent,
+                              enabled: !_tagMode,
+                              onZoomChanged: (zoomed) {
+                                if (!mounted || zoomed == _zoomed) return;
+                                // This can fire while the parent is rebuilding
+                                // (the reset on leaving a page), so defer it.
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (mounted && zoomed != _zoomed) {
+                                    setState(() => _zoomed = zoomed);
+                                  }
+                                });
+                              },
                               child: EditedImage(
                                 file: File(item.path),
                                 recipe: isCurrent ? _recipe : EditRecipe.empty,
                                 fit: BoxFit.contain,
-                                cacheWidth: 2400,
+                                cacheWidth: _decodeWidth,
                                 decoded: isCurrent ? _decoded : null,
                               ),
                             ),
@@ -533,6 +573,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                                 onPanStart: (d) => setState(() {
                                   _dragStart = d.localPosition;
                                   _dragCurrent = d.localPosition;
+                                  _dragBox = Size(
+                                    constraints.maxWidth,
+                                    constraints.maxHeight,
+                                  );
                                 }),
                                 onPanUpdate: (d) => setState(() {
                                   _dragCurrent = d.localPosition;
@@ -613,6 +657,104 @@ class _InfoStrip extends StatelessWidget {
             style: const TextStyle(color: Colors.white54, fontSize: 11),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A photo you can pinch, pan and double-tap, which reports whether it is zoomed.
+///
+/// Three things the bare `InteractiveViewer` got wrong here:
+///
+/// * A horizontal drag on a zoomed photo was claimed by the surrounding
+///   `PageView`, so panning flipped to the next photo instead.
+/// * There was no double-tap, which is the gesture everyone reaches for.
+/// * Leaving a page kept its zoom, so coming back to it found the photo still
+///   magnified and off-centre.
+class _ZoomableImage extends StatefulWidget {
+  const _ZoomableImage({
+    required this.child,
+    required this.active,
+    required this.enabled,
+    required this.onZoomChanged,
+  });
+
+  final Widget child;
+  final bool active;
+  final bool enabled;
+  final ValueChanged<bool> onZoomChanged;
+
+  @override
+  State<_ZoomableImage> createState() => _ZoomableImageState();
+}
+
+class _ZoomableImageState extends State<_ZoomableImage> {
+  final TransformationController _controller = TransformationController();
+  Offset _lastTap = Offset.zero;
+  bool _reportedZoom = false;
+
+  static const double _doubleTapScale = 2.6;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_report);
+  }
+
+  @override
+  void didUpdateWidget(_ZoomableImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.active && !widget.active) {
+      _controller.value = Matrix4.identity();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_report);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _isZoomed => _controller.value.getMaxScaleOnAxis() > 1.01;
+
+  void _report() {
+    if (!mounted) return;
+    final zoomed = _isZoomed;
+    if (zoomed == _reportedZoom) return;
+    _reportedZoom = zoomed;
+    widget.onZoomChanged(zoomed);
+  }
+
+  void _handleDoubleTap() {
+    if (_isZoomed) {
+      _controller.value = Matrix4.identity();
+      return;
+    }
+    // Zoom about the tapped point: the tap position must map to itself, which
+    // is what the -p * (scale - 1) translation does.
+    final p = _lastTap;
+    _controller.value = Matrix4.identity()
+      ..translate(
+        -p.dx * (_doubleTapScale - 1),
+        -p.dy * (_doubleTapScale - 1),
+      )
+      ..scale(_doubleTapScale);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTapDown: (details) => _lastTap = details.localPosition,
+      onDoubleTap: widget.enabled ? _handleDoubleTap : null,
+      child: InteractiveViewer(
+        transformationController: _controller,
+        minScale: 1,
+        maxScale: 8,
+        panEnabled: widget.enabled,
+        scaleEnabled: widget.enabled,
+        clipBehavior: Clip.hardEdge,
+        child: widget.child,
       ),
     );
   }

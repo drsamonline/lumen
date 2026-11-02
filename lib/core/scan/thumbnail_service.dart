@@ -19,7 +19,11 @@ class ThumbnailService {
   final PhotoDao _dao;
 
   static const int thumbWidth = 480;
-  static const int _maxConcurrent = 3;
+  /// Three on a two-core phone competes with the UI thread for the same cores.
+  /// Scale with the machine, capped so a 16-core desktop does not open 15
+  /// decoders at once.
+  static final int _maxConcurrent =
+      (Platform.numberOfProcessors - 1).clamp(2, 6);
 
   final Queue<int> _queue = Queue<int>();
   final Set<int> _queued = <int>{};

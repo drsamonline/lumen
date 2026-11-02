@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.6.6 - zoom, and the capture-date fallback
+
+**Zoom was broken in four ways**, all in the viewer's `InteractiveViewer`:
+
+- **Panning a zoomed photo swiped to the next one.** A horizontal drag was
+  claimed by the surrounding `PageView`. The pager is now locked while zoomed,
+  so a drag belongs to the photo.
+- **The zoom was computed against the wrong box for rotated photos.** The
+  `AspectRatio` used the unrotated dimensions, so a quarter-turned photo sat in a
+  frame of the wrong shape and every pan felt off. The aspect now swaps for
+  90°/270°.
+- **No double-tap.** Added: double-tap zooms to 2.6x about the tapped point,
+  double-tap again returns to fit.
+- **Zoom survived leaving the page**, so coming back found the photo still
+  magnified and off-centre. It now resets when the page goes inactive.
+
+Also fixed: face-tag coordinates were normalised against a `_imageBox` field
+written by *every* page during build, so with mixed aspect ratios the box
+belonged to a neighbour. The box is now captured per gesture.
+
+**Capture date now falls back properly.** EXIF → the date in the file name →
+mtime. `IMG_20240115_183022`, `PXL_…`, `Screenshot_20240115-…` all carry one, and
+on Android mtime is the copy date, which is what collapsed the library into a
+single month. New `CaptureDate` with its own tests; midday is used when the name
+has no time, so the day survives a negative-offset timezone.
+
+**Three more performance fixes:**
+
+- `controller.photos` returned `List.unmodifiable(...)` — a full copy of the
+  loaded page on every access, several times per build. Now an
+  `UnmodifiableListView`, which is O(1) and still read-only.
+- `dateBuckets()` ran on every refresh and nothing ever read the result. Removed
+  from the refresh path.
+- Thumbnail concurrency was hardcoded to 3. It now scales with the core count,
+  capped at 6 — three decoders on a two-core phone compete with the UI thread.
+- The viewer decoded at a fixed 2400 px. Now 1.5x the device pixel width, floored
+  at 1080, which roughly halves peak bitmap memory on a 1080p phone.
+
 ## 1.6.5 - deep audit: the scanner was doing it the slow way
 
 Five defects, four of them performance, found by reading the hot paths instead

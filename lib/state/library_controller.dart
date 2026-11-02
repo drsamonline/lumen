@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
 
@@ -32,7 +33,12 @@ class LibraryController extends ChangeNotifier {
   PhotoFilter get filter => _filter;
 
   final List<Photo> _photos = <Photo>[];
-  List<Photo> get photos => List<Photo>.unmodifiable(_photos);
+  /// A live read-only *view*, not a copy.
+  ///
+  /// `List.unmodifiable` allocates a new list on every call, and the grid asks
+  /// for this several times per build. A view is O(1) and still refuses writes.
+  late final UnmodifiableListView<Photo> photos =
+      UnmodifiableListView<Photo>(_photos);
 
   int _total = 0;
   int get total => _total;
@@ -50,8 +56,6 @@ class LibraryController extends ChangeNotifier {
   SearchMode _searchMode = SearchMode.exact;
   SearchMode get searchMode => _searchMode;
 
-  List<DateBucket> _buckets = const <DateBucket>[];
-  List<DateBucket> get buckets => _buckets;
 
   String? _error;
   String? get error => _error;
@@ -69,7 +73,6 @@ class LibraryController extends ChangeNotifier {
         ..clear()
         ..addAll(result.photos);
       if (_searchMode != SearchMode.exact) _total = _photos.length;
-      _buckets = await _dao.dateBuckets(_filter);
       _requestThumbs(result.photos);
     } catch (e) {
       _error = e.toString();

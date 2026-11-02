@@ -37,6 +37,10 @@ class PhotoGrid extends ConsumerStatefulWidget {
 class _PhotoGridState extends ConsumerState<PhotoGrid> {
   final ScrollController _scroll = ScrollController();
   final Set<int> _selected = <int>{};
+
+  /// The filter the current selection belongs to. Changing the filter drops the
+  /// selection: acting on twenty photos you can no longer see is a trap.
+  PhotoFilter? _selectionFilter;
   double _tileExtent = 160;
 
   bool get _selecting => _selected.isNotEmpty;
@@ -136,6 +140,11 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
         message: widget.emptyMessage,
         action: widget.emptyAction,
       );
+    }
+
+    if (_selectionFilter != controller.filter) {
+      _selectionFilter = controller.filter;
+      _selected.clear();
     }
 
     final groups = _group(controller.photos);

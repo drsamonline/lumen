@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import '../db/database.dart';
 import '../db/photo_dao.dart';
 import '../models/photo.dart';
+import 'capture_date.dart';
 import 'exif_reader.dart';
 
 class ScanProgress {
@@ -127,7 +128,9 @@ class LibraryScanner {
           }
 
           final exif = await ExifReader.read(entity.path);
-          final takenAt = exif.takenAtMs ?? stat.modified.millisecondsSinceEpoch;
+          final takenAt = exif.takenAtMs ??
+              CaptureDate.fromFileName(entity.path) ??
+              stat.modified.millisecondsSinceEpoch;
 
           batch.add(PhotoCandidate(
             path: entity.path,
