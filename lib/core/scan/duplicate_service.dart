@@ -1,5 +1,4 @@
 import '../app_paths.dart';
-import '../db/database.dart';
 import '../db/photo_dao.dart';
 import '../models/photo.dart';
 import 'hash_service.dart';
@@ -45,10 +44,9 @@ class DuplicateProgress {
 /// and lets you decide, because a wrong automatic delete is the one mistake a
 /// photo library cannot apologise for.
 class DuplicateService {
-  DuplicateService(this._dao, this._appDb);
+  DuplicateService(this._dao);
 
   final PhotoDao _dao;
-  final AppDatabase _appDb;
 
   /// Hash every photo that does not have one yet. Thumbnails are generated on
   /// demand first, since the hash is read from the thumbnail.
@@ -123,7 +121,6 @@ class DuplicateService {
       }
     }
 
-    final distance = <String, int>{};
     for (final bucket in buckets.values) {
       if (bucket.length < 2) continue;
       for (var a = 0; a < bucket.length; a++) {
@@ -131,11 +128,7 @@ class DuplicateService {
           final i = bucket[a], j = bucket[b];
           if (find(i) == find(j)) continue;
           final d = HashService.hamming(rows[i].dhash, rows[j].dhash);
-          if (d <= threshold) {
-            union(i, j);
-            final key = i < j ? '$i:$j' : '$j:$i';
-            distance[key] = d;
-          }
+          if (d <= threshold) union(i, j);
         }
       }
     }

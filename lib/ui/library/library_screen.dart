@@ -199,6 +199,15 @@ class _FilterStrip extends StatelessWidget {
         onDeleted: () => controller.setFilter(filter.copyWith(clearAlbum: true)),
       ));
     }
+    if (filter.nearLat != null && filter.nearLon != null) {
+      chips.add(InputChip(
+        label: Text(
+          '${filter.nearLat!.abs().toStringAsFixed(1)}°, '
+          '${filter.nearLon!.abs().toStringAsFixed(1)}°',
+        ),
+        onDeleted: () => controller.setFilter(filter.copyWith(clearPlace: true)),
+      ));
+    }
     if (chips.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(

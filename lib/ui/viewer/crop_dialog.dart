@@ -77,8 +77,11 @@ class _CropDialogState extends State<CropDialog> {
     setState(() {
       _aspect = preset.aspect;
       if (preset.aspect == null) return;
-      _rect = _box == Size.zero
-          ? _rect
+      if (_box == Size.zero) return;
+      // Nothing chosen yet: take the largest rectangle of that shape. Once the
+      // user has framed something, keep their centre instead of jumping.
+      _rect = _rect == CropMath.full
+          ? CropMath.fitAspect(aspect: preset.aspect!, box: _box)
           : CropMath.reaspect(_rect, aspect: preset.aspect!, box: _box);
     });
   }

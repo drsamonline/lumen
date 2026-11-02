@@ -216,6 +216,7 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
         ),
         if (_selecting)
           BatchActionBar(
+            controller: controller,
             selectedIds: _selected.toList(growable: false),
             onClear: _clearSelection,
             onMutated: controller.refresh,

@@ -53,6 +53,14 @@ class LibraryScanner {
     '@eaDir', '.thumbnails', '.cache',
   };
 
+  static bool _isUnderSkippedDir(String root, String path) {
+    final relative = p.relative(path, from: root);
+    for (final segment in p.split(relative)) {
+      if (_skipDirNames.contains(segment)) return true;
+    }
+    return false;
+  }
+
   /// Cheap pre-filter so we do not stat every file in the tree twice.
   static bool _looksLikeImage(String name) {
     final ext = p.extension(name).replaceFirst('.', '').toLowerCase();
@@ -84,13 +92,11 @@ class LibraryScanner {
         if (!await dir.exists()) continue;
 
         await for (final entity in dir.list(recursive: true, followLinks: false)) {
-          if (entity is! File) {
-            if (entity is Directory && _skipDirNames.contains(p.basename(entity.path))) {
-              // `list` cannot prune a subtree, so we just skip its entries as
-              // they arrive — cheap because we never open them.
-            }
-            continue;
-          }
+          if (entity is! File) continue;
+          // `Directory.list` cannot prune a subtree, so a skipped directory has
+          // to be filtered out per entry. Without this, every image inside
+          // node_modules or .cache was indexed.
+          if (_isUnderSkippedDir(root, entity.path)) continue;
           if (!_looksLikeImage(entity.path)) continue;
           if (entity.path.contains('${p.separator}thumbs${p.separator}')) continue;
 

@@ -26,6 +26,21 @@ void main() {
     test('two differences score 2', () {
       expect(Fuzzy.withinOneEdit('cat', 'dog'), 2);
       expect(Fuzzy.withinOneEdit('receipt', 'resipy'), 2);
+      // Two separate substitutions, not a swap.
+      expect(Fuzzy.withinOneEdit('abcd', 'axcx'), 2);
+    });
+
+    test('an adjacent transposition scores 1', () {
+      // The canonical English typo, and the reason this is Damerau rather than
+      // plain Levenshtein.
+      expect(Fuzzy.withinOneEdit('receipt', 'reciept'), 1);
+      expect(Fuzzy.withinOneEdit('reciept', 'receipt'), 1);
+      expect(Fuzzy.withinOneEdit('beach', 'baech'), 1);
+    });
+
+    test('a non-adjacent swap scores 2', () {
+      expect(Fuzzy.withinOneEdit('abcd', 'dbca'), 2);
+      expect(Fuzzy.withinOneEdit('beach', 'hcaeb'), 2);
     });
 
     test('a length gap over one scores 2', () {

@@ -396,10 +396,16 @@ class PhotoDao {
 
     // Bounded candidate set: scoring every filename in a 500k library would
     // stall the UI, and the newest 8000 is where a typo almost always points.
+    // The candidate pool still honours the filter's non-text constraints, so a
+    // typo search inside an album cannot surface photos outside it.
+    final where = <String>['missing = 0'];
+    final args = <Object?>[];
+    _applyFilter(filter.copyWith(query: ''), where, args, forCount: true);
     final rows = await _db.query(
       'photos',
       columns: <String>['id', 'file_name'],
-      where: 'missing = 0',
+      where: where.join(' AND '),
+      whereArgs: args,
       orderBy: 'taken_at_ms DESC',
       limit: 8000,
     );

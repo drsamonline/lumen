@@ -185,6 +185,10 @@ flutter test
   that every shipped plugin declares its backing library and its requirement.
 - `test/hash_test.dart`, `test/fuzzy_test.dart`, `test/zip_test.dart`,
   `test/metadata_check_test.dart` — the v1.1 feature logic.
+- `test/crop_math_test.dart`, `test/batch_ops_test.dart`, `test/places_test.dart`
+  — v1.3–v1.4 logic.
+- `test/scanner_test.dart`, `test/search_fallback_test.dart` — regressions found
+  in the v1.4.1 audit.
 
 ---
 

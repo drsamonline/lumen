@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/export/album_zip.dart';
 import '../../core/models/album.dart';
 import '../../core/models/photo.dart';
+import '../../state/library_controller.dart';
 import '../../state/providers.dart';
 
 /// Actions that apply to a whole selection.
@@ -14,10 +15,18 @@ import '../../state/providers.dart';
 class BatchActionBar extends ConsumerStatefulWidget {
   const BatchActionBar({
     super.key,
+    required this.controller,
     required this.selectedIds,
     required this.onClear,
     required this.onMutated,
   });
+
+  /// The controller that owns the grid this bar belongs to.
+  ///
+  /// Reading `libraryControllerProvider` here instead would mutate the main
+  /// library while the user is looking at an album or a person — the rows would
+  /// change in the database and nothing would change on screen.
+  final LibraryController controller;
 
   final List<int> selectedIds;
   final VoidCallback onClear;
@@ -117,14 +126,12 @@ class _BatchActionBarState extends ConsumerState<BatchActionBar> {
   }
 
   Future<void> _rate(int stars) async {
-    final controller = ref.read(libraryControllerProvider);
-    await controller.setRatingForAll(widget.selectedIds, stars);
+    await widget.controller.setRatingForAll(widget.selectedIds, stars);
     widget.onMutated();
   }
 
   Future<void> _favorite(bool value) async {
-    final controller = ref.read(libraryControllerProvider);
-    await controller.setFavoriteForAll(widget.selectedIds, value);
+    await widget.controller.setFavoriteForAll(widget.selectedIds, value);
     widget.onMutated();
   }
 

@@ -11,6 +11,7 @@ import '../../core/models/edit_recipe.dart';
 import '../../core/models/photo.dart';
 import '../../state/providers.dart';
 import '../widgets/edited_image.dart';
+import '../widgets/image_disposal.dart';
 
 /// Full-screen slideshow — Picasa's screensaver, which is honestly how a lot of
 /// people used it.
@@ -59,7 +60,7 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
     _timer?.cancel();
     _chromeTimer?.cancel();
     for (final image in _decoded.values) {
-      image?.dispose();
+      deferImageDisposal(image);
     }
     _page.dispose();
     super.dispose();
@@ -112,6 +113,10 @@ class _SlideshowScreenState extends ConsumerState<SlideshowScreen> {
       );
       _decoded[photo.id] = image;
     }
+
+    // Without this a swiped-to photo that needed an exotic decode stayed blank
+    // until the auto-advance timer happened to rebuild.
+    if (mounted) setState(() {});
   }
 
   void _togglePlay() {

@@ -13,6 +13,7 @@ import '../../core/scan/exporter.dart';
 import '../../state/providers.dart';
 import '../slideshow/slideshow_screen.dart';
 import '../widgets/edited_image.dart';
+import '../widgets/image_disposal.dart';
 import 'edit_panel.dart';
 
 /// Full-screen viewer with zoom, swipe, live editing, face tagging and
@@ -63,7 +64,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   @override
   void dispose() {
-    _decoded?.dispose();
+    deferImageDisposal(_decoded);
     _page.dispose();
     super.dispose();
   }
@@ -83,21 +84,23 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     }
 
     if (!mounted) {
-      decoded?.dispose();
+      deferImageDisposal(decoded);
       return;
     }
+    final previous = _decoded;
     setState(() {
-      _decoded?.dispose();
       _decoded = decoded;
       _recipe = recipe;
       _savedRecipe = recipe;
       _faces = faces;
     });
+    // The outgoing page's RawImage may still hold this for one more frame.
+    deferImageDisposal(previous);
   }
 
   void _onPageChanged(int index) {
+    final previous = _decoded;
     setState(() {
-      _decoded?.dispose();
       _decoded = null;
       _index = index;
       _tagMode = false;
@@ -108,6 +111,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       _faces = const <Face>[];
       _favoriteOverride = null;
     });
+    deferImageDisposal(previous);
     _loadForCurrent();
   }
 

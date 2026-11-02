@@ -52,10 +52,7 @@ final watchServiceProvider = Provider<WatchService>((ref) {
 });
 
 final duplicateServiceProvider = Provider<DuplicateService>((ref) {
-  return DuplicateService(
-    ref.watch(photoDaoProvider),
-    ref.watch(databaseProvider),
-  );
+  return DuplicateService(ref.watch(photoDaoProvider));
 });
 
 final lanServerProvider = Provider<LanServer>((ref) {

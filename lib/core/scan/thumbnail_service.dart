@@ -1,11 +1,9 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import '../app_paths.dart';
-import '../db/database.dart';
 import '../db/photo_dao.dart';
 import '../formats/format_registry.dart';
 
@@ -120,5 +118,3 @@ class ThumbnailService {
   }
 }
 
-/// Kept for callers that want raw bytes without a full decode.
-Uint8List emptyBytes() => Uint8List(0);

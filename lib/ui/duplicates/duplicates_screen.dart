@@ -267,7 +267,7 @@ class _GroupCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             child: Text(
               '${group.photos.length} copies · distance ${group.maxDistance} · '
-              '${group.photos.first.dimensions} best',
+              '${best.dimensions} best',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: scheme.onSurfaceVariant,
                   ),

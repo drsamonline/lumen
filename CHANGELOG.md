@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.4.1 — audit pass
+
+No new features. Nine defects found by reading the tree end to end, all fixed,
+each with a regression test where one was possible.
+
+- **Bulk actions edited the wrong controller.** `BatchActionBar` read
+  `libraryControllerProvider` instead of the controller that owned the grid, so
+  rating or favouriting inside an album changed the database and nothing on
+  screen. It now takes the controller as a parameter.
+- **Fuzzy search ignored every non-text filter.** The candidate pool was "the
+  newest 8000 photos" with no album, person, rating, favourite, date or place
+  constraint, so a typo search inside an album could return photos from outside
+  it. The pool is now built from the filter.
+- **Transposed typos never matched.** "reciept" for "receipt" is two
+  substitutions under plain Levenshtein, so the canonical English typo fell
+  through. `Fuzzy` now accepts one adjacent transposition (Damerau).
+- **The scanner indexed skipped directories.** `Directory.list` cannot prune a
+  subtree, so the skip list was decorative — every image inside `node_modules`,
+  `.cache` and `.git` was indexed. Path segments are now checked per entry.
+- **Disposing a decoded image could crash.** The viewer and slideshow disposed a
+  `ui.Image` while a mounted `RawImage` still referenced it, which throws
+  "Cannot draw a disposed image" rather than showing the next photo. Disposal is
+  now deferred one frame (`deferImageDisposal`).
+- **A swiped-to exotic photo stayed blank** in the slideshow until the
+  auto-advance timer happened to rebuild. `_load` now notifies.
+- **Duplicate groups reported the wrong photo's dimensions** in the summary
+  line — it read `photos.first` while labelling it "best".
+- **The place filter had no chip**, so once applied it could not be cleared.
+- **Dead code removed:** the unused `distance` map in the duplicate finder, an
+  unused `AppDatabase` handle, `emptyBytes`, and two unused imports.
+  `CropMath.fitAspect` was reachable only from tests; it now backs the preset
+  behaviour when nothing has been cropped yet.
+
+New tests: `scanner_test.dart` (skip directories, incremental rescan, vanished
+files), `search_fallback_test.dart` (all three search stages, and that each
+respects the rest of the filter).
+
 ## 1.4.0
 
 - **Year scrubber.** A vertical year rail down the right edge of the grid. Drag
