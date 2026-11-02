@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.6.7 - face boxes, the Android folder picker, and a test that bites
+
+- **Face tags ignored rotation.** Boxes are stored in the image's own
+  coordinates, because that is what the file contains, but the viewer draws the
+  photo rotated - so on a turned photo the box landed on somebody's elbow. New
+  `BoxRotation` maps a box both ways, with eight tests including round trips and
+  frame containment. Drawing uses `toDisplay`, storing uses `fromDisplay`.
+- **"Add folder" was a dead end on Android.** The system picker hands back a
+  content URI, which `dart:io` cannot read, so the folder was added and could
+  never be opened. It is now hidden on Android with an explanation and the
+  standard-folders route offered instead. Desktop keeps the picker.
+- **Fuzzy search scanned 8,000 file names per keystroke.** Capped at 2,000.
+- **`FormatTile` extracted and tested.** Every layout bug so far was found by a
+  phone screenshot, not by CI. A `RenderFlex` overflow throws in a widget test,
+  so pumping this row at 1080x2340 with an eighteen-extension plugin now fails
+  the build if the overflow returns. That is the first widget test in the repo
+  and it guards the specific defect you photographed.
+
 ## 1.6.6 - zoom, and the capture-date fallback
 
 **Zoom was broken in four ways**, all in the viewer's `InteractiveViewer`:

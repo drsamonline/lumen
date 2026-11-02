@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/formats/format_registry.dart';
 import '../core/version.dart';
+import 'widgets/format_tile.dart';
 import '../core/formats/image_format.dart';
 import '../core/lan/lan_server.dart';
 import '../state/providers.dart';
@@ -89,19 +90,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       },
                     ),
                   ),
-                ListTile(
-                  leading: const Icon(Icons.add),
-                  title: const Text('Add folder'),
-                  onTap: () async {
-                    final path = await FilePicker.platform.getDirectoryPath(
-                      dialogTitle: 'Add a photo folder',
-                    );
-                    if (path == null) return;
-                    await scan.addRoot(path);
-                    ref.invalidate(libraryRootsProvider);
-                    await ref.read(libraryControllerProvider).refresh();
-                  },
-                ),
+                if (Platform.isAndroid)
+                  const ListTile(
+                    leading: Icon(Icons.info_outline),
+                    title: Text('Adding an arbitrary folder'),
+                    subtitle: Text(
+                      'Not available on Android. The system folder picker hands '
+                      'back a content URI, which cannot be read as a path, so '
+                      'Lumen would add a folder it could never open. Use the '
+                      'standard folders above, or grant photo access and rescan.',
+                    ),
+                  )
+                else
+                  ListTile(
+                    leading: const Icon(Icons.add),
+                    title: const Text('Add folder'),
+                    onTap: () async {
+                      final path = await FilePicker.platform.getDirectoryPath(
+                        dialogTitle: 'Add a photo folder',
+                      );
+                      if (path == null) return;
+                      await scan.addRoot(path);
+                      ref.invalidate(libraryRootsProvider);
+                      await ref.read(libraryControllerProvider).refresh();
+                    },
+                  ),
               ],
             ),
           ),
@@ -231,7 +244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               }
               return Column(
                 children: <Widget>[
-                  for (final status in statuses) _FormatTile(status: status),
+                  for (final status in statuses) FormatTile(status: status),
                   ListTile(
                     dense: true,
                     leading: const Icon(Icons.info_outline, size: 20),
@@ -281,63 +294,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             leading: const Icon(Icons.info_outline),
             title: const Text('Version'),
             subtitle: Text('$kAppVersion · ${Platform.operatingSystem}'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FormatTile extends StatelessWidget {
-  const _FormatTile({required this.status});
-
-  final FormatStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final plugin = status.plugin;
-    final ready = status.availability != FormatAvailability.needsInstall;
-
-    final text = Theme.of(context).textTheme;
-
-    // Deliberately not a ListTile with a Row title: the extension list for RAW
-    // is eighteen entries long, the Row had no bounded width, and it overflowed
-    // so hard that the plugin name was squeezed to one character per line.
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Icon(
-            ready ? Icons.check_circle_outline : Icons.download_outlined,
-            color: ready ? scheme.primary : scheme.onSurfaceVariant,
-            size: 22,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(plugin.displayName, style: text.bodyMedium),
-                const SizedBox(height: 2),
-                Text(
-                  status.extensionsLabel,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: text.labelSmall?.copyWith(color: scheme.onSurfaceVariant),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  ready
-                      ? plugin.poweredBy
-                      : '${plugin.requirement ?? 'Not installed'}\nUses ${plugin.poweredBy}',
-                  style: text.bodySmall?.copyWith(
-                    color: ready ? null : scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),

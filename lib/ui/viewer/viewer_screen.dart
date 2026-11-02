@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/app_paths.dart';
 import '../../core/formats/format_registry.dart';
 import '../../core/models/album.dart';
+import '../../core/models/box_rotation.dart';
 import '../../core/models/edit_recipe.dart';
 import '../../core/models/photo.dart';
 import '../../core/models/person.dart';
@@ -340,6 +341,28 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   // ------------------------------------------------------------------- faces
 
+  /// A stored face box, drawn where it appears on the rotated photo.
+  Widget _faceBox(Face face, Size box) {
+    final shown = BoxRotation.toDisplay(
+      Rect.fromLTWH(face.x, face.y, face.w, face.h),
+      _recipe.rotate,
+    );
+    return Positioned(
+      left: shown.left * box.width,
+      top: shown.top * box.height,
+      width: shown.width * box.width,
+      height: shown.height * box.height,
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.tealAccent, width: 1.5),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _finishTagging() async {
     final start = _dragStart;
     final current = _dragCurrent;
@@ -352,10 +375,18 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     final rect = Rect.fromPoints(start, current);
     if (rect.width < 12 || rect.height < 12) return;
 
-    final nx = (rect.left / _dragBox.width).clamp(0.0, 1.0);
-    final ny = (rect.top / _dragBox.height).clamp(0.0, 1.0);
-    final nw = (rect.width / _dragBox.width).clamp(0.0, 1.0);
-    final nh = (rect.height / _dragBox.height).clamp(0.0, 1.0);
+    // The drag happened on the rotated view; faces are stored unrotated.
+    final drawn = Rect.fromLTWH(
+      (rect.left / _dragBox.width).clamp(0.0, 1.0),
+      (rect.top / _dragBox.height).clamp(0.0, 1.0),
+      (rect.width / _dragBox.width).clamp(0.0, 1.0),
+      (rect.height / _dragBox.height).clamp(0.0, 1.0),
+    );
+    final stored = BoxRotation.fromDisplay(drawn, _recipe.rotate);
+    final nx = stored.left;
+    final ny = stored.top;
+    final nw = stored.width;
+    final nh = stored.height;
 
     final personDao = ref.read(personDaoProvider);
     final people = await personDao.all();
@@ -551,21 +582,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                             ),
                             if (isCurrent)
                               for (final face in _faces)
-                                Positioned(
-                                  left: face.x * constraints.maxWidth,
-                                  top: face.y * constraints.maxHeight,
-                                  width: face.w * constraints.maxWidth,
-                                  height: face.h * constraints.maxHeight,
-                                  child: IgnorePointer(
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: Colors.tealAccent,
-                                          width: 1.5,
-                                        ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                    ),
+                                _faceBox(
+                                  face,
+                                  Size(
+                                    constraints.maxWidth,
+                                    constraints.maxHeight,
                                   ),
                                 ),
                             if (isCurrent && _tagMode)

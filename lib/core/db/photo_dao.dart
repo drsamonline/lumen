@@ -462,7 +462,8 @@ class PhotoDao {
     if (tokens.isEmpty) return const <Photo>[];
 
     // Bounded candidate set: scoring every filename in a 500k library would
-    // stall the UI, and the newest 8000 is where a typo almost always points.
+    // stall the UI. 2,000 is where a typo almost always points and keeps the
+    // per-keystroke cost bounded on a library of any size.
     // The candidate pool still honours the filter's non-text constraints, so a
     // typo search inside an album cannot surface photos outside it.
     final where = <String>['missing = 0'];
@@ -474,7 +475,7 @@ class PhotoDao {
       where: where.join(' AND '),
       whereArgs: args,
       orderBy: 'taken_at_ms DESC',
-      limit: 8000,
+      limit: 2000,
     );
 
     final scored = <int, int>{};
