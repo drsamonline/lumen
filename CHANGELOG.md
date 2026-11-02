@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.6.9 - widget tests, and a rail that could overflow
+
+Three of the four bugs you photographed were layout defects found by a human
+looking at a screen, because CI only compiled. This closes that gap.
+
+- **`YearScrubber` extracted and fixed.** It was a `Column` of year labels with
+  no bound: a library spanning thirty years wanted thirty labels, which is taller
+  than the screen, and it would have overflowed. Labels are now thinned to what
+  fits, keeping the newest year — the one people reach for.
+- **`MonthHeaderDelegate` extracted** so the pinned header can be pumped in a
+  `CustomScrollView` and asserted, including that it stays pinned after its group
+  scrolls away.
+- **Three new widget test files** — year scrubber (thinning, short window, tap to
+  seek), month header (renders, stays pinned, long label at 320 px) and the
+  support dialog (all six handles at phone width, narrow window, the "nothing is
+  gated" line). A `RenderFlex` overflow throws in a widget test, so each of these
+  is a real regression guard rather than a smoke test.
+
+21 test files now. Still no widget test for the viewer or the grid as a whole —
+both need providers and a database, which is a bigger harness.
+
 ## 1.6.8 - EXIF parsing moved off the UI isolate
 
 The last big performance item, done in the smallest shape that could work.

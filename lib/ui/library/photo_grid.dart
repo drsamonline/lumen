@@ -11,6 +11,8 @@ import '../../state/library_controller.dart';
 import '../../state/providers.dart';
 import '../viewer/viewer_screen.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/month_header.dart';
+import '../widgets/year_scrubber.dart';
 import 'batch_action_bar.dart';
 
 /// The timeline grid: month headers with photo tiles beneath, exactly the
@@ -79,15 +81,15 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
   /// there. The estimate uses the same column formula as the grid delegate and
   /// the known tile and header heights, which lands within a row — close enough
   /// for a scrubber, and far cheaper than measuring every sliver.
-  List<_ScrubMarker> _markers(List<_MonthGroup> groups, double width) {
+  List<ScrubMarker> _markers(List<_MonthGroup> groups, double width) {
     final usable = width - 24;
     final columns = usable <= 0
         ? 1
         : math.max(1, (usable / (_tileExtent + 4)).ceil());
-    const headerHeight = _MonthHeaderDelegate.height;
+    const headerHeight = MonthHeaderDelegate.height;
     final rowHeight = _tileExtent + 4;
 
-    final markers = <_ScrubMarker>[];
+    final markers = <ScrubMarker>[];
     var offset = 0.0;
     int? lastYear;
 
@@ -95,7 +97,7 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
       if (group.photos.isEmpty) continue;
       final year = group.photos.first.takenAt.year;
       if (year != lastYear) {
-        markers.add(_ScrubMarker(year: year, offset: offset));
+        markers.add(ScrubMarker(year: year, offset: offset));
         lastYear = year;
       }
       final rows = (group.photos.length / columns).ceil();
@@ -154,7 +156,7 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
       slivers.add(
         SliverPersistentHeader(
           pinned: true,
-          delegate: _MonthHeaderDelegate(
+          delegate: MonthHeaderDelegate(
             label: group.label,
             count: group.photos.length,
             background: Theme.of(context).colorScheme.surface,
@@ -230,7 +232,7 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
                   Expanded(child: scroll),
                   SizedBox(
                     width: railWidth,
-                    child: _YearScrubber(
+                    child: YearScrubber(
                       markers: markers,
                       onSeek: (offset) {
                         if (!_scroll.hasClients) return;
@@ -268,91 +270,6 @@ class _PhotoGridState extends ConsumerState<PhotoGrid> {
 
 }
 
-class _ScrubMarker {
-  const _ScrubMarker({required this.year, required this.offset});
-  final int year;
-  final double offset;
-}
-
-/// A vertical year rail down the right edge, as Picasa had.
-///
-/// Dragging anywhere on the rail jumps to the nearest year, which is the only
-/// navigation that works when the library is ten thousand photos long and the
-/// scrollbar tells you nothing.
-class _YearScrubber extends StatefulWidget {
-  const _YearScrubber({required this.markers, required this.onSeek});
-
-  final List<_ScrubMarker> markers;
-  final ValueChanged<double> onSeek;
-
-  @override
-  State<_YearScrubber> createState() => _YearScrubberState();
-}
-
-class _YearScrubberState extends State<_YearScrubber> {
-  int? _activeYear;
-
-  void _seekTo(double dy, double height) {
-    if (height <= 0) return;
-    final fraction = (dy / height).clamp(0.0, 0.9999);
-    final index = (fraction * widget.markers.length).floor();
-    final marker = widget.markers[index.clamp(0, widget.markers.length - 1)];
-    setState(() => _activeYear = marker.year);
-    widget.onSeek(marker.offset);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onVerticalDragStart: (d) => _seekTo(d.localPosition.dy, context.size?.height ?? 0),
-      onVerticalDragUpdate: (d) => _seekTo(d.localPosition.dy, context.size?.height ?? 0),
-      onVerticalDragEnd: (_) => setState(() => _activeYear = null),
-      onTapDown: (d) => _seekTo(d.localPosition.dy, context.size?.height ?? 0),
-      onTapUp: (_) => setState(() => _activeYear = null),
-      child: SizedBox(
-        width: 40,
-        child: Stack(
-          children: <Widget>[
-            Positioned(
-              right: 4,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: <Widget>[
-                    for (final marker in widget.markers)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 160),
-                          style: TextStyle(
-                            fontSize: _activeYear == marker.year ? 12 : 10,
-                            fontWeight: _activeYear == marker.year
-                                ? FontWeight.w700
-                                : FontWeight.w500,
-                            color: _activeYear == marker.year
-                                ? scheme.primary
-                                : scheme.onSurfaceVariant,
-                          ),
-                          child: Text('${marker.year}'),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _MonthGroup {
   _MonthGroup({required this.label});
   final String label;
@@ -363,63 +280,6 @@ class _MonthGroup {
 ///
 /// Height is fixed so the scroll-offset estimate used by the year rail can count
 /// it exactly.
-class _MonthHeaderDelegate extends SliverPersistentHeaderDelegate {
-  _MonthHeaderDelegate({
-    required this.label,
-    required this.count,
-    required this.background,
-    required this.divider,
-  });
-
-  final String label;
-  final int count;
-  final Color background;
-  final Color divider;
-
-  static const double height = 44;
-
-  @override
-  double get minExtent => height;
-
-  @override
-  double get maxExtent => height;
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    final text = Theme.of(context).textTheme;
-    return Container(
-      // Opaque, so tiles scrolling underneath do not show through the label.
-      color: background,
-      alignment: Alignment.bottomLeft,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: <Widget>[
-          Text(label, style: text.titleSmall),
-          const SizedBox(width: 10),
-          Text(
-            '$count',
-            style: text.labelSmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-      foregroundDecoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: divider, width: 0.5)),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(_MonthHeaderDelegate oldDelegate) =>
-      oldDelegate.label != label ||
-      oldDelegate.count != count ||
-      oldDelegate.background != background ||
-      oldDelegate.divider != divider;
-}
-
 class _PhotoTile extends ConsumerWidget {
   const _PhotoTile({
     required this.photo,

@@ -3,7 +3,7 @@ description: >-
   Lumen — a fast, fully offline photo library in the spirit of Google Picasa.
   Windows, Linux and Android from one Flutter codebase.
 publish_to: 'none'
-version: 1.6.8+22
+version: 1.6.9+23
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
