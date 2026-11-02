@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/permissions.dart';
 import '../state/providers.dart';
 
 /// First run: pick one or more folders. On Android we offer the standard
@@ -37,20 +38,46 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  void _addAndroidDefaults() {
-    final home = Platform.environment['HOME'] ?? '';
+  Future<void> _addAndroidDefaults() async {
+    // Ask first. Under scoped storage the standard folders are invisible until
+    // the grant lands, so testing existsSync() before asking made this button a
+    // dead end: nothing was added and Start stayed disabled.
+    final granted = await PhotoPermissions.request();
+
     final candidates = <String>[
-      if (home.isNotEmpty) '$home/Pictures',
-      if (home.isNotEmpty) '$home/DCIM',
       '/storage/emulated/0/DCIM',
       '/storage/emulated/0/Pictures',
       '/storage/emulated/0/Download',
+      '/storage/emulated/0/Pictures/Screenshots',
     ];
+
+    if (!mounted) return;
     setState(() {
-      for (final c in candidates) {
-        if (Directory(c).existsSync() && !_picked.contains(c)) _picked.add(c);
+      for (final candidate in candidates) {
+        if (!_picked.contains(candidate)) _picked.add(candidate);
       }
     });
+
+    if (!granted && mounted) {
+      final deniedForever = await PhotoPermissions.permanentlyDenied();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            deniedForever
+                ? 'Photo access is blocked. Open system settings to allow it.'
+                : 'Photo access was declined — the folders are listed anyway, '
+                    'but indexing may come back empty.',
+          ),
+          action: deniedForever
+              ? SnackBarAction(
+                  label: 'Settings',
+                  onPressed: PhotoPermissions.openSettings,
+                )
+              : null,
+        ),
+      );
+    }
   }
 
   Future<void> _start() async {

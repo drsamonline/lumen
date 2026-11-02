@@ -93,6 +93,12 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter create --platforms=android --project-name lumen .
+      # flutter create writes a bare manifest with no storage permission, so an
+      # installed APK asks for nothing and finds no photos.
+      - name: Add the permissions the app needs
+        run: python3 tools/android_permissions.py .
+      - name: Show the resulting manifest
+        run: sed -n '1,40p' android/app/src/main/AndroidManifest.xml
       # No keystore in this repo, so the template's release buildType signs with
       # the debug key. Fine for sideloading; Play Store would need a real key.
       - run: flutter build apk --release
