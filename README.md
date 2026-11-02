@@ -18,7 +18,7 @@ thumbnails, edits, faces, albums, duplicates — on your machine.
 
 <!-- shot:start -->
 
-![Lumen's LAN gallery: a grid of photos with star ratings, edited badges and a possible-duplicates strip](docs/shot.png)
+![Lumen's LAN gallery: a grid of photos with star ratings, edited badges and a possible-duplicates strip](docs/assets/app-desktop.png)
 
 <!-- shot:end -->
 
