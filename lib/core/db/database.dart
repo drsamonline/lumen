@@ -1,0 +1,219 @@
+import 'package:sqflite/sqflite.dart';
+
+import '../app_paths.dart';
+
+/// The single SQLite index that drives the whole app.
+///
+/// Design notes:
+/// * WAL + NORMAL sync: fast writes, safe against app crashes (not against
+///   power loss, which is an acceptable trade for a photo index that can be
+///   rebuilt by rescanning).
+/// * Thumbnails live on disk, not as blobs, so the database stays small enough
+///   to sit in the OS page cache.
+/// * FTS5 is used when the platform SQLite has it; otherwise search falls back
+///   to LIKE. [ftsEnabled] tells the DAO which path to take.
+class AppDatabase {
+  AppDatabase._();
+  static final AppDatabase instance = AppDatabase._();
+
+  Database? _db;
+  bool ftsEnabled = false;
+
+  bool get isOpen => _db != null;
+
+  Database get db {
+    final d = _db;
+    if (d == null) {
+      throw StateError('Database is not open. Call AppDatabase.instance.open().');
+    }
+    return d;
+  }
+
+  Future<void> open({String? pathOverride, bool inMemory = false}) async {
+    if (_db != null) return;
+    final path = inMemory ? inMemoryDatabasePath : (pathOverride ?? AppPaths.dbPath);
+
+    _db = await databaseFactory.openDatabase(
+      path,
+      options: OpenDatabaseOptions(
+        version: 1,
+        onConfigure: (d) async {
+          await d.execute('PRAGMA foreign_keys = ON');
+          if (!inMemory) {
+            await d.execute('PRAGMA journal_mode = WAL');
+          }
+          await d.execute('PRAGMA synchronous = NORMAL');
+          await d.execute('PRAGMA temp_store = MEMORY');
+          await d.execute('PRAGMA cache_size = -16000');
+        },
+        onCreate: (d, version) => _createSchema(d),
+      ),
+    );
+
+    await _tryCreateFts();
+  }
+
+  Future<void> close() async {
+    await _db?.close();
+    _db = null;
+  }
+
+  Future<void> _createSchema(Database d) async {
+    final batch = d.batch();
+
+    batch.execute("""
+      CREATE TABLE photos (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        path          TEXT    NOT NULL UNIQUE,
+        folder        TEXT    NOT NULL,
+        file_name     TEXT    NOT NULL,
+        ext           TEXT    NOT NULL,
+        size_bytes    INTEGER NOT NULL DEFAULT 0,
+        modified_ms   INTEGER NOT NULL DEFAULT 0,
+        taken_at_ms   INTEGER NOT NULL DEFAULT 0,
+        width         INTEGER,
+        height        INTEGER,
+        camera_make   TEXT,
+        camera_model  TEXT,
+        iso           INTEGER,
+        f_number      REAL,
+        exposure_time TEXT,
+        focal_length  REAL,
+        lat           REAL,
+        lon           REAL,
+        orientation   INTEGER NOT NULL DEFAULT 1,
+        rating        INTEGER NOT NULL DEFAULT 0,
+        is_favorite   INTEGER NOT NULL DEFAULT 0,
+        caption       TEXT,
+        tags          TEXT,
+        thumb_ready   INTEGER NOT NULL DEFAULT 0,
+        missing       INTEGER NOT NULL DEFAULT 0,
+        indexed_ms    INTEGER NOT NULL DEFAULT 0
+      )
+    """);
+
+    batch.execute('CREATE INDEX idx_photos_taken ON photos(taken_at_ms DESC)');
+    batch.execute('CREATE INDEX idx_photos_folder ON photos(folder)');
+    batch.execute('CREATE INDEX idx_photos_thumb ON photos(thumb_ready)');
+    batch.execute('CREATE INDEX idx_photos_rating ON photos(rating)');
+
+    batch.execute("""
+      CREATE TABLE library_roots (
+        id       INTEGER PRIMARY KEY AUTOINCREMENT,
+        path     TEXT NOT NULL UNIQUE,
+        added_ms INTEGER NOT NULL DEFAULT 0
+      )
+    """);
+
+    batch.execute("""
+      CREATE TABLE albums (
+        id             INTEGER PRIMARY KEY AUTOINCREMENT,
+        name           TEXT NOT NULL,
+        cover_photo_id INTEGER,
+        created_ms     INTEGER NOT NULL DEFAULT 0
+      )
+    """);
+
+    batch.execute("""
+      CREATE TABLE album_photos (
+        album_id INTEGER NOT NULL,
+        photo_id INTEGER NOT NULL,
+        added_ms INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (album_id, photo_id)
+      )
+    """);
+    batch.execute('CREATE INDEX idx_album_photos_photo ON album_photos(photo_id)');
+
+    batch.execute("""
+      CREATE TABLE people (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        name          TEXT NOT NULL UNIQUE,
+        cover_face_id INTEGER
+      )
+    """);
+
+    batch.execute("""
+      CREATE TABLE faces (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        photo_id  INTEGER NOT NULL,
+        person_id INTEGER,
+        x         REAL NOT NULL,
+        y         REAL NOT NULL,
+        w         REAL NOT NULL,
+        h         REAL NOT NULL
+      )
+    """);
+    batch.execute('CREATE INDEX idx_faces_photo ON faces(photo_id)');
+    batch.execute('CREATE INDEX idx_faces_person ON faces(person_id)');
+
+    batch.execute("""
+      CREATE TABLE edits (
+        photo_id   INTEGER PRIMARY KEY,
+        recipe     TEXT NOT NULL,
+        updated_ms INTEGER NOT NULL DEFAULT 0
+      )
+    """);
+
+    batch.execute("""
+      CREATE TABLE scan_log (
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        started_ms INTEGER NOT NULL,
+        ended_ms   INTEGER,
+        added      INTEGER NOT NULL DEFAULT 0,
+        updated    INTEGER NOT NULL DEFAULT 0,
+        removed    INTEGER NOT NULL DEFAULT 0
+      )
+    """);
+
+    await batch.commit(noResult: true);
+  }
+
+  /// FTS5 is present in the FFI build and in every modern Android SQLite.
+  /// If it is missing we degrade gracefully rather than failing to start.
+  Future<void> _tryCreateFts() async {
+    try {
+      await db.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS photos_fts USING fts5(
+          file_name, folder, caption, tags,
+          content='photos', content_rowid='id', tokenize='unicode61'
+        )
+      """);
+      await db.execute("""
+        CREATE TRIGGER IF NOT EXISTS photos_ai AFTER INSERT ON photos BEGIN
+          INSERT INTO photos_fts(rowid, file_name, folder, caption, tags)
+          VALUES (new.id, new.file_name, new.folder, new.caption, new.tags);
+        END
+      """);
+      await db.execute("""
+        CREATE TRIGGER IF NOT EXISTS photos_ad AFTER DELETE ON photos BEGIN
+          INSERT INTO photos_fts(photos_fts, rowid, file_name, folder, caption, tags)
+          VALUES ('delete', old.id, old.file_name, old.folder, old.caption, old.tags);
+        END
+      """);
+      await db.execute("""
+        CREATE TRIGGER IF NOT EXISTS photos_au AFTER UPDATE ON photos BEGIN
+          INSERT INTO photos_fts(photos_fts, rowid, file_name, folder, caption, tags)
+          VALUES ('delete', old.id, old.file_name, old.folder, old.caption, old.tags);
+          INSERT INTO photos_fts(rowid, file_name, folder, caption, tags)
+          VALUES (new.id, new.file_name, new.folder, new.caption, new.tags);
+        END
+      """);
+      ftsEnabled = true;
+
+      // Backfill if the virtual table is empty but photos already exist.
+      final ftsCount = Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM photos_fts'),
+          ) ??
+          0;
+      final photoCount = Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM photos'),
+          ) ??
+          0;
+      if (ftsCount == 0 && photoCount > 0) {
+        await db.execute("INSERT INTO photos_fts(photos_fts) VALUES('rebuild')");
+      }
+    } catch (_) {
+      ftsEnabled = false;
+    }
+  }
+}

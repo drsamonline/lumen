@@ -1,0 +1,12 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  errors:
+    # Treat unused imports as a warning rather than an error so a partial
+    # refactor never blocks a build.
+    unused_import: warning
+
+linter:
+  rules:
+    avoid_print: true
+    prefer_single_quotes: true
