@@ -37,7 +37,10 @@
         border-radius:6px;cursor:pointer;border:1px solid transparent}
   .tile img{width:100%;height:100%;object-fit:cover;display:block}
   .tile .fav{position:absolute;top:5px;right:6px;font-size:13px;color:#ffd166;text-shadow:0 1px 3px #000}
-  .tile .badge{position:absolute;bottom:5px;left:6px;font-size:.6rem;letter-spacing:.06em;
+  .tile .cap{position:absolute;bottom:5px;left:6px;right:6px;font-size:.62rem;
+             color:rgba(255,255,255,.8);text-shadow:0 1px 2px rgba(0,0,0,.9);
+             white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile .badge{position:absolute;top:5px;left:6px;font-size:.6rem;letter-spacing:.06em;
                text-transform:uppercase;background:rgba(0,0,0,.55);color:#fff;
                padding:.1rem .3rem;border-radius:.25rem}
   .dupes{margin:0;padding:0 10px 24px}
@@ -248,144 +251,156 @@ when it browses your library over Wi-Fi. Sample data. The desktop and Android ap
 const PHOTOS = [
 {
 "id": 1,
-"name": "IMG_1200.jpg",
+"name": "IMG_1201.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-01-11",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232b5d63%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%238fc7bd%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EHarbour%2C%2006%3A12%3C/text%3E%3C/svg%3E",
+"taken": "2024-02-12",
+"src": "photos/01.jpg",
+"label": "Harbour, 06:12",
 "edited": false,
 "favorite": true,
 "dupe": false
 },
 {
 "id": 2,
-"name": "IMG_1201.jpg",
+"name": "IMG_1202.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-02-12",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%233a2f5b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23b98fc7%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EDusk%2C%20terrace%3C/text%3E%3C/svg%3E",
+"taken": "2024-03-13",
+"src": "photos/02.jpg",
+"label": "Dusk, terrace",
 "edited": false,
 "favorite": false,
 "dupe": false
 },
 {
 "id": 3,
-"name": "IMG_1202.jpg",
+"name": "IMG_1203.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-03-13",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%236b4a2f%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23d9a566%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EKitchen%20window%3C/text%3E%3C/svg%3E",
+"taken": "2024-04-14",
+"src": "photos/03.jpg",
+"label": "Kitchen window",
 "edited": true,
 "favorite": false,
 "dupe": false
 },
 {
 "id": 4,
-"name": "IMG_1203.jpg",
+"name": "IMG_1204.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-04-14",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%231f3b4d%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%236fa8c4%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3ERain%20on%20glass%3C/text%3E%3C/svg%3E",
+"taken": "2024-05-15",
+"src": "photos/04.jpg",
+"label": "Rain on glass",
 "edited": false,
 "favorite": false,
 "dupe": true
 },
 {
 "id": 5,
-"name": "IMG_1204.jpg",
+"name": "IMG_1205.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-05-15",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%234d2b2b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23c98a6f%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EBrick%20and%20sun%3C/text%3E%3C/svg%3E",
+"taken": "2024-06-16",
+"src": "photos/05.jpg",
+"label": "Brick and sun",
 "edited": false,
 "favorite": true,
 "dupe": false
 },
 {
 "id": 6,
-"name": "IMG_1205.jpg",
+"name": "IMG_1206.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-06-16",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232f4a2b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%239dc47f%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EGarden%2C%20July%3C/text%3E%3C/svg%3E",
+"taken": "2024-07-17",
+"src": "photos/06.jpg",
+"label": "Garden, July",
 "edited": false,
 "favorite": false,
 "dupe": false
 },
 {
 "id": 7,
-"name": "IMG_1206.jpg",
+"name": "IMG_1207.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-07-17",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%23513a1f%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23c4a06f%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EOld%20road%3C/text%3E%3C/svg%3E",
+"taken": "2024-08-18",
+"src": "photos/07.jpg",
+"label": "Old road",
 "edited": false,
 "favorite": false,
 "dupe": false
 },
 {
 "id": 8,
-"name": "IMG_1207.jpg",
+"name": "IMG_1208.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-08-18",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%2325303f%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%238fa2b9%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EBlue%20hour%3C/text%3E%3C/svg%3E",
+"taken": "2024-09-11",
+"src": "photos/08.jpg",
+"label": "Blue hour",
 "edited": true,
 "favorite": false,
 "dupe": false
 },
 {
 "id": 9,
-"name": "IMG_1208.jpg",
+"name": "IMG_1209.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-09-11",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%235b2b45%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23c78fa8%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EMarket%20flowers%3C/text%3E%3C/svg%3E",
+"taken": "2024-10-12",
+"src": "photos/09.jpg",
+"label": "Market flowers",
 "edited": false,
 "favorite": false,
 "dupe": false
 },
 {
 "id": 10,
-"name": "IMG_1209.jpg",
+"name": "IMG_1210.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-10-12",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232b4a45%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%237fc4b4%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3ECoast%20path%3C/text%3E%3C/svg%3E",
+"taken": "2024-11-13",
+"src": "photos/10.jpg",
+"label": "Coast path",
 "edited": false,
 "favorite": true,
 "dupe": false
 },
 {
 "id": 11,
-"name": "IMG_1210.jpg",
+"name": "IMG_1211.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-11-13",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%233f3a2b%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%23b9b07f%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3EDry%20field%3C/text%3E%3C/svg%3E",
+"taken": "2024-12-14",
+"src": "photos/11.jpg",
+"label": "Dry field",
 "edited": false,
 "favorite": false,
 "dupe": false
 },
 {
 "id": 12,
-"name": "IMG_1211.jpg",
+"name": "IMG_1212.jpg",
 "w": 4000,
 "h": 3000,
 "camera": "X-T5",
-"taken": "2024-12-14",
-"thumb": "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%27400%27%20height%3D%27400%27%3E%3Cdefs%3E%3ClinearGradient%20id%3D%27g%27%20x1%3D%270%27%20y1%3D%270%27%20x2%3D%271%27%20y2%3D%271%27%3E%3Cstop%20offset%3D%270%27%20stop-color%3D%27%232b2b3f%27/%3E%3Cstop%20offset%3D%271%27%20stop-color%3D%27%238f8fb9%27/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width%3D%27400%27%20height%3D%27400%27%20fill%3D%27url%28%23g%29%27/%3E%3Ctext%20x%3D%2724%27%20y%3D%27368%27%20font-family%3D%27system-ui%2Csans-serif%27%20font-size%3D%2726%27%20fill%3D%27rgba%28255%2C255%2C255%2C.72%29%27%3ENight%20bus%3C/text%3E%3C/svg%3E",
+"taken": "2024-01-15",
+"src": "photos/12.jpg",
+"label": "Night bus",
 "edited": false,
 "favorite": false,
 "dupe": true
@@ -397,7 +412,7 @@ const dupeRow = document.getElementById('dupe-row');
 const countEl = document.getElementById('count');
 
 function openLb(p){
-  document.getElementById('lb-img').src = p.thumb;
+  document.getElementById('lb-img').src = p.src;
   document.getElementById('lb-img').alt = p.name;
   document.getElementById('lb-name').textContent = p.name;
   document.getElementById('lb-meta').textContent =
@@ -413,16 +428,21 @@ PHOTOS.forEach(p => {
   const tile = document.createElement('div');
   tile.className = 'tile';
   const img = document.createElement('img');
-  img.src = p.thumb; img.alt = p.name; img.loading = 'lazy';
+  img.src = p.src; img.alt = p.name; img.loading = 'lazy';
   tile.appendChild(img);
   if (p.favorite){ const s=document.createElement('span'); s.className='fav'; s.textContent='\u2605'; tile.appendChild(s); }
   if (p.edited){ const b=document.createElement('span'); b.className='badge'; b.textContent='edited'; tile.appendChild(b); }
+  if (p.label){
+    const cap = document.createElement('span');
+    cap.className = 'cap'; cap.textContent = p.label;
+    tile.appendChild(cap);
+  }
   tile.addEventListener('click', () => openLb(p));
   grid.appendChild(tile);
 });
 PHOTOS.filter(p => p.dupe).forEach(p => {
   const img = document.createElement('img');
-  img.src = p.thumb; img.alt = p.name;
+  img.src = p.src; img.alt = p.name;
   dupeRow.appendChild(img);
 });
 countEl.textContent = PHOTOS.length + ' photos';
