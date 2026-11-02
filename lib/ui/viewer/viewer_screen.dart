@@ -161,11 +161,13 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   Expanded(
                     child: FilledButton(
                       onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(sheetContext);
                         await editDao.save(photo.id, _recipe);
                         if (!mounted) return;
                         setState(() => _savedRecipe = _recipe);
-                        Navigator.pop(sheetContext);
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        navigator.pop();
+                        messenger.showSnackBar(
                           const SnackBar(content: Text('Edit saved')),
                         );
                       },

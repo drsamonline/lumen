@@ -10,7 +10,7 @@ class LumenApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final seed = const Color(0xFF2E6F6B);
+    const seed = Color(0xFF2E6F6B);
     return MaterialApp(
       title: 'Lumen',
       debugShowCheckedModeBanner: false,

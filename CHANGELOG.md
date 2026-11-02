@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.4.3 - first CI run, first real findings
+
+The first `flutter analyze` run reported 18 issues. All fixed; the build is now
+clean at info level too, not just warning level.
+
+- **Unused `dart:io` import** in `people_screen.dart` - the only *fatal* one.
+  Warnings are fatal in CI by design, so this alone turned the build red.
+- **Two `use_build_context_synchronously` findings** - a `BuildContext` was used
+  after an `await` in the settings LAN toggle and the editor's Apply button. Both
+  now capture `ScaffoldMessenger` / `Navigator` *before* the first await, which
+  is the correct fix rather than suppressing the lint.
+- **`prefer_const_declarations`** and **`prefer_const_constructors`** - two
+  missed `const`s.
+- **`prefer_interpolation_to_compose_strings`** in a test.
+- **`prefer_single_quotes` disabled**, with the reason recorded in
+  `analysis_options.yaml`: this codebase writes multi-line SQL in double-quoted
+  triple blocks, and the lint would force single-quoted triple blocks around
+  every `CREATE TABLE`, which breaks as soon as a query contains an apostrophe.
+- **Dependabot now ignores major versions.** It opened four PRs on the first
+  run, including `flutter_riverpod` 2 to 3, which is a breaking migration and
+  must not land unreviewed.
+
 ## 1.4.2 — continuous integration
 
 - **`.github/workflows/test.yml`.** `flutter analyze` and `flutter test` on every

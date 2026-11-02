@@ -166,6 +166,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               setState(() => _lanOn = value);
               await settings.setLanEnabled(value);
               final beacon = ref.read(lanBeaconProvider);
+              // Captured before the first await: a BuildContext must not be
+              // touched after an async gap.
+              final messenger = ScaffoldMessenger.of(context);
               if (value) {
                 try {
                   final port = await server.start(port: settings.lanPort);
@@ -173,7 +176,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   await _refreshAddresses();
                 } catch (e) {
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(content: Text('Could not start the server: $e')),
                   );
                   setState(() => _lanOn = false);

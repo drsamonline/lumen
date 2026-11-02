@@ -81,8 +81,8 @@ void main() {
           delta: const Offset(0.99, 0.99),
           box: square,
         );
-        expect(r.width, greaterThanOrEqualTo(CropMath.minSize - 1e-9), reason: 'corner ' + corner.toString());
-        expect(r.height, greaterThanOrEqualTo(CropMath.minSize - 1e-9), reason: 'corner ' + corner.toString());
+        expect(r.width, greaterThanOrEqualTo(CropMath.minSize - 1e-9), reason: 'corner $corner');
+        expect(r.height, greaterThanOrEqualTo(CropMath.minSize - 1e-9), reason: 'corner $corner');
         expect(r.left, greaterThanOrEqualTo(-1e-9));
         expect(r.top, greaterThanOrEqualTo(-1e-9));
         expect(r.right, lessThanOrEqualTo(1 + 1e-9));

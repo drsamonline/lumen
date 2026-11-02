@@ -19,7 +19,7 @@ class LibraryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Library'),
+        title: const Text('Library'),
         bottom: scan.isScanning
             ? PreferredSize(
                 preferredSize: const Size.fromHeight(28),

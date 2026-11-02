@@ -2,11 +2,14 @@ include: package:flutter_lints/flutter.yaml
 
 analyzer:
   errors:
-    # Treat unused imports as a warning rather than an error so a partial
-    # refactor never blocks a build.
+    # An unused import is a warning, and warnings are fatal in CI.
     unused_import: warning
 
 linter:
   rules:
     avoid_print: true
-    prefer_single_quotes: true
+    # Off deliberately. This codebase writes multi-line SQL with """ blocks,
+    # and prefer_single_quotes has no notion of "this string is a query" — it
+    # would force ''' around every CREATE TABLE, which then breaks the moment a
+    # query contains an apostrophe.
+    prefer_single_quotes: false

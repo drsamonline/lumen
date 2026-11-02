@@ -4,8 +4,17 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    # A major bump is a migration, not an update. Keep them out of the
+    # automatic queue so nothing lands unreviewed.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
   - package-ecosystem: pub
     directory: "/"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
