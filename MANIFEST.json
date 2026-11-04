@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "locked": false,
+  "files": {
+    "README.md": {
+      "sha": "171c14c795ff9f92cc01889633dddbd7e8326895",
+      "producer": "bootstrap@2026-11-04",
+      "class": "generated",
+      "at": "2026-11-04T20:05:54Z"
+    },
+    "docs/index.html": {
+      "sha": "af5eab7f6d658233401ec54417c948f23c204af0",
+      "producer": "bootstrap@2026-11-04",
+      "class": "generated",
+      "at": "2026-11-04T20:05:54Z"
+    },
+    "docs/play/index.html": {
+      "sha": "3e833c9660f1eca575f27b2f593e80848b5d8b00",
+      "producer": "bootstrap@2026-11-04",
+      "class": "generated",
+      "at": "2026-11-04T20:05:54Z"
+    }
+  },
+  "updated": "2026-11-04T20:05:54Z"
+}
