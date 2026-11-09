@@ -45,6 +45,21 @@ void main() {
       expect(CaptureDate.fromFileName('IMG_20240132_120000.jpg'), isNull);
     });
 
+    test('a date the calendar does not have', () {
+      // 31 February and 31 April pass a 1..31 range check and are then rolled
+      // forward by DateTime — the name has to survive the round trip instead.
+      expect(CaptureDate.fromFileName('IMG_20240231_120000.jpg'), isNull);
+      expect(CaptureDate.fromFileName('IMG_20240431_120000.jpg'), isNull);
+      expect(CaptureDate.fromFileName('IMG_20230229_120000.jpg'), isNull,
+          reason: '2023 is not a leap year');
+    });
+
+    test('29 February in a leap year is a date', () {
+      final date = of(CaptureDate.fromFileName('IMG_20240229_120000.jpg'));
+      expect(date.month, 2);
+      expect(date.day, 29);
+    });
+
     test('a date in the future', () {
       expect(CaptureDate.fromFileName('IMG_29990101_120000.jpg'), isNull);
     });
