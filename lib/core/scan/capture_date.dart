@@ -42,6 +42,13 @@ class CaptureDate {
       minute.clamp(0, 59),
       second.clamp(0, 59),
     );
+    // DateTime rolls an impossible day forward — 31 February becomes 2 March,
+    // 29 February in a common year becomes 1 March — so a range check on the
+    // day alone is not enough. A name that cannot be a date is an artefact like
+    // any other, and says so instead of inventing one.
+    if (date.year != year || date.month != month || date.day != day) {
+      return null;
+    }
     if (date.isAfter(DateTime.now())) return null;
     return date.millisecondsSinceEpoch;
   }

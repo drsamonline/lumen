@@ -1,0 +1,8 @@
+{
+  "tests": "161 passing",
+  "licence": "PolyForm NC 1.0.0",
+  "deps": "11 packages",
+  "live": "LAN demo",
+  "build": "3 platforms",
+  "offline": "no network"
+}
