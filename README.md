@@ -313,6 +313,7 @@ Lumen is free, offline, and has no business model. If it is useful to you:
 | | |
 |---|---|
 | UPI (India) | `drsohilboi@ybl` — payee Dr. Sohil Momin |
+| GitHub Sponsors | [github.com/sponsors/drsamonline](https://github.com/sponsors/drsamonline) |
 | Ko-fi | <https://ko-fi.com/matneo> |
 | PayPal | <https://paypal.me/drsohilmomin?locale.x=en_GB&country.x=IN> |
 | Books | <https://www.amazon.com/stores/author/B08ZT331LY/allbooks?ccs_id=aed72b9f-71d9-41dc-adee-e9368a317acc> |
